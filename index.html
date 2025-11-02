@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover Your Cosmic Blueprint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Charter:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="mainContainer" class="container">
+        <div class="header">
+            <h1>Discover Your Cosmic Blueprint</h1>
+            <h2>Vedic Kundli Analysis</h2>
+            <p class="subtitle">Enter your birth details</p>
+        </div>
+        
+        <form id="kundliForm" class="kundli-form">
+            <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input 
+                    type="text" 
+                    id="fullName" 
+                    name="fullName" 
+                    placeholder="Enter your full name"
+                    required
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="dateOfBirth">Date of Birth</label>
+                <input 
+                    type="date" 
+                    id="dateOfBirth" 
+                    name="dateOfBirth" 
+                    required
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="timeOfBirth">Time of Birth</label>
+                <input 
+                    type="time" 
+                    id="timeOfBirth" 
+                    name="timeOfBirth"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="placeOfBirth">Place of Birth</label>
+                <div class="searchable-dropdown">
+                    <input 
+                        type="text" 
+                        id="placeOfBirth" 
+                        name="placeOfBirth" 
+                        placeholder="Search city or place..."
+                        required
+                        autocomplete="off"
+                    >
+                    <div id="dropdownList" class="dropdown-list hidden"></div>
+                </div>
+            </div>
+            
+            <button type="submit" class="submit-btn">
+                Generate
+            </button>
+        </form>
+        
+        <div id="loadingMessage" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Analyzing your birth chart...</p>
+        </div>
+        
+        <div id="result" class="result hidden">
+            <h2>Your Kundli Details</h2>
+            <div class="result-content"></div>
+        </div>
+        
+    </div>
+    
+    <div id="articleView" class="article-view hidden">
+        <div id="articleContent"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

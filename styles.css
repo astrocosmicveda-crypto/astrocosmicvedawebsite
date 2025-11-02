@@ -1,0 +1,685 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background: #FFFFFF;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    box-shadow: 0 1.5px 8px rgba(0,0,0,0.04), 0 8px 32px rgba(110,90,66,0.06);
+    max-width: 520px;
+    width: 100%;
+    padding: 40px 36px 32px 36px;
+}
+
+.header {
+    margin-bottom: 38px;
+    text-align: center;
+    border-bottom: 1.5px solid #f3f3f3;
+    padding-bottom: 20px;
+    position: relative;
+}
+
+.header-icon {
+    width: 40px;
+    margin-bottom: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.header h1 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+    letter-spacing: -0.4px;
+}
+
+.header h2 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #292929;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    font-size: 15px;
+    color: #666;
+    font-weight: 400;
+    margin-bottom: 0;
+}
+
+.kundli-form {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    margin-top: 28px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    letter-spacing: 0.02em;
+}
+
+.form-group input {
+    padding: 12px 14px;
+    border: 1.2px solid #d1d1d1;
+    border-radius: 7px;
+    font-size: 15px;
+    font-family: inherit;
+    background-color: white;
+    color: #1a1a1a;
+    transition: border-color 0.15s ease;
+}
+
+.form-group input:hover { border-color: #aaa; }
+.form-group input:focus {
+    outline: none;
+    border-color: #1a1a1a;
+}
+.form-group input::placeholder { color: #bbb; }
+
+.searchable-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.searchable-dropdown > input {
+    width: 100%;
+}
+
+#dropdownList {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border: 1.2px solid #d1d1d1;
+    border-radius: 7px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+#dropdownList.hidden {
+    display: none;
+}
+
+.dropdown-item {
+    padding: 12px 14px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #1a1a1a;
+    transition: background-color 0.1s ease;
+    border-bottom: 1px solid #f3f3f3;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+.dropdown-item:active {
+    background-color: #e8e8e8;
+}
+
+.dropdown-item.loading-item,
+.dropdown-item.error-item {
+    cursor: default;
+}
+
+.dropdown-item.loading-item:hover,
+.dropdown-item.error-item:hover {
+    background-color: transparent;
+}
+
+.dropdown-item.loading-item {
+    color: #666;
+    font-style: italic;
+}
+
+.dropdown-item.error-item {
+    color: #d32f2f;
+}
+
+.submit-btn {
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    padding: 13px 0;
+    border-radius: 7px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.16s, box-shadow 0.12s;
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+    width: 100%;
+    box-shadow: 0 2px 9px rgba(30,30,30,0.09);
+}
+
+.submit-btn:hover { background: #333; }
+.submit-btn:active { background: #000; }
+
+.loading {
+    text-align: center;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+.loading.hidden { display: none; }
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #e5e5e5;
+    border-top-color: #1a1a1a;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading p {
+    color: #666;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.result {
+    margin-top: 34px;
+    padding: 21px 19px;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 2px 9px rgba(110,90,66,0.04);
+}
+.result.hidden { display: none; }
+
+.result h2 {
+    font-size: 17px;
+    color: #1a1a1a;
+    margin-bottom: 11px;
+    font-weight: 500;
+}
+.result-content {
+    color: #333;
+    line-height: 1.7;
+    font-size: 14px;
+}
+.result-content p { margin-bottom: 8px; }
+.result-content strong { font-weight: 500; color: #1a1a1a; }
+.result-content table { margin: 15px 0; }
+.result-content table tr:hover { background-color: #f9f9f9; }
+.result-content table th, 
+.result-content table td { 
+    border: 1px solid #e5e5e5;
+}
+
+.article-view {
+    display: none;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+    background: #fff;
+}
+
+.article-view.active {
+    display: block;
+}
+
+.article-view.hidden {
+    display: none;
+}
+
+/* Hide main container when article is shown */
+body:has(.article-view.active) #mainContainer {
+    display: none;
+}
+
+body:has(.article-view.active) {
+    padding: 0;
+}
+
+body:has(.article-view.active) .container {
+    display: none;
+}
+
+.article-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 80px 20px;
+    font-family: 'Charter', 'Crimson Text', Georgia, serif; /* Serif for article/report */
+    line-height: 1.82;
+    color: #201e1d;
+}
+
+
+.article-header {
+    text-align: center;
+    padding: 0 0 50px 0;
+    border-bottom: 3px solid #1a1a1a;
+}
+
+.article-header h1 {
+    font-size: 52px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+    color: #1a1a1a;
+}
+
+.article-meta {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 20px;
+}
+
+.article-body {
+    margin: 60px auto;
+}
+
+.article-intro {
+    margin-bottom: 50px;
+}
+
+.article-intro p {
+    font-size: 21px;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    color: #2c2c2c;
+}
+
+.birth-details-box {
+    font-family: 'Inter', sans-serif;
+    background: #f9f9f9;
+    padding: 30px;
+    border-left: 4px solid #1a1a1a;
+    margin: 40px 0;
+}
+
+.birth-details-box h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    color: #666;
+    font-weight: 600;
+}
+
+.birth-details-box p {
+    font-size: 17px;
+    line-height: 1.6;
+    margin: 10px 0;
+}
+
+.planets-section {
+    margin: 50px 0;
+}
+
+.planets-section h2 {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 30px;
+    text-align: center;
+    letter-spacing: -0.5px;
+}
+
+.planets-table-wrapper {
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.planets-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+}
+
+.planets-table thead {
+    background: #1a1a1a;
+    color: white;
+}
+
+.planets-table th {
+    padding: 16px 20px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 3px solid #1a1a1a;
+}
+
+.planets-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.planets-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.planets-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.planet-name {
+    font-size: 16px;
+}
+
+.planets-table th:nth-child(1),
+.planets-table td:nth-child(1) {
+    width: 25%;
+}
+
+.planets-table th:nth-child(2),
+.planets-table td:nth-child(2) {
+    width: 30%;
+}
+
+.planets-table th:nth-child(3),
+.planets-table td:nth-child(3) {
+    width: 20%;
+    text-align: center;
+}
+
+.planets-table th:nth-child(4),
+.planets-table td:nth-child(4) {
+    width: 25%;
+    text-align: center;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.article-footer {
+    margin-top: 80px;
+    padding-top: 40px;
+    border-top: 2px solid #e5e5e5;
+    text-align: center;
+    color: #999;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 1000;
+    transition: background 0.2s;
+}
+
+.back-button:hover {
+    background: #333;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .container { padding: 24px 10px; }
+    .header h1 { font-size: 1.48rem; }
+    .header h2 { font-size: 1.06rem; }
+    .subtitle { font-size: 13px; }
+    .kundli-form { gap: 18px; }
+    .submit-btn { font-size: 13px; padding: 12px 0; }
+}
+/* Improved House Analysis Card */
+.ascendant-lord-section {
+    background: #f6faff;
+    box-shadow: 0 2px 10px rgba(30,60,130,0.07), 0 6px 22px rgba(108,130,170,0.10);
+    border-radius: 18px;
+    border: 1.3px solid #e8eefa;
+    margin-bottom: 38px;
+    padding: 35px 30px 28px 30px;
+    font-family: 'Inter', 'Crimson Text', serif;
+    transition: box-shadow .16s;
+}
+@media (max-width:640px) {
+    .ascendant-lord-section {
+        padding: 22px 10px 18px 10px;
+    }
+}
+.ascendant-lord-section h2 {
+    font-size: 28px;
+    color: #234183;
+    margin-bottom: 19px;
+    font-weight: 700;
+}
+.ascendant-lord-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #152b51;
+    margin-top: 18px;
+    margin-bottom: 13px;
+}
+.ascendant-lord-section p {
+    color: #223;
+    font-size: 16px;
+    margin-bottom: 9px;
+}
+
+.fundamental-note {
+    border-left: 7px solid #fcbc38 !important;
+    box-shadow: 0 1px 6px #ffeecc;
+    background: #fff7e1 !important;
+}
+.fundamental-note p {
+    font-size: 18px !important;
+    color: #996915 !important;
+    font-family: 'Inter', serif;
+}
+
+.summary-section {
+    background: linear-gradient(108deg, #e7f3fb 44%, #fffbe8 100%);
+    border: 1.7px solid #bad7fa;
+    padding: 30px 24px 32px 22px;
+    margin: 35px 0 44px 0;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(30,60,130,0.07), 0 6px 22px rgba(180,180,140,0.06);
+}
+.summary-section h2 {
+    color: #195fa3;
+    font-size: 26px;
+    margin-bottom: 13px;
+    font-weight: 700;
+}
+.summary-section p {
+    color: #21374a;
+    font-size: 17.5px;
+    letter-spacing: .01em;
+    line-height: 1.75;
+}
+
+.planets-section h2 {
+    color: #395596;
+    border-bottom: 1.5px solid #dae8f7;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+}
+
+.planets-table th, .planets-table td {
+    font-size: 15px;
+    letter-spacing: .03em;
+}
+.planets-table th {
+    background: #e2e6f3 !important;
+    color: #133864 !important;
+}
+.planets-table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 .5px 6px #f2f4fa;
+}
+.planet-name {
+    font-weight: 600;
+    color: #3c3772;
+}
+.article-footer {
+    background: #f4f6f9;
+    color: #6b7b85;
+    margin-top: 90px;
+    font-size: 14.5px;
+    padding: 30px 0 10px 0;
+    border-radius: 4px;
+    font-style: italic;
+    border-top: 2.5px solid #f4e6bf;
+}
+.ascendant-lord-section {
+    background: #f9f7f2;
+    box-shadow: 0 1px 7px rgba(44,36,23,0.03), 0 8px 24px rgba(180,150,66,0.06);
+    border-radius: 13px;
+    border: 1.2px solid #e8e4d9;
+    margin-bottom: 38px;
+    padding: 32px 30px 26px 30px;
+    font-family: 'Charter', 'Georgia', serif;
+    transition: box-shadow .16s;
+}
+@media (max-width:640px) {
+    .ascendant-lord-section { padding: 18px 8px 14px 9px; }
+}
+.ascendant-lord-section h2 {
+    font-size: 26px;
+    color: #201e1d;
+    margin-bottom: 16px;
+    font-weight: 700;
+    letter-spacing: -0.25px;
+    font-family: 'Charter', 'Georgia', serif;
+}
+.ascendant-lord-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #4d3a25;
+    margin-top: 17px;
+    margin-bottom: 11px;
+    letter-spacing: 0;
+    font-family: 'Charter', 'Georgia', serif;
+}
+.ascendant-lord-section p {
+    color: #20160f;
+    font-size: 18px;
+    margin-bottom: 12px;
+    line-height: 1.93;
+    font-family: 'Charter', 'Georgia', serif;
+}
+
+/* Highlighted Classical Source Note */
+.fundamental-note {
+    border-left: 7px solid #d7b97b !important;
+    background: #f9f6ed !important;
+}
+.fundamental-note p {
+    font-size: 17.5px !important;
+    color: #7d5a23 !important;
+    font-family: 'Merriweather', 'Charter', serif !important;
+    font-style: italic;
+    line-height: 1.55;
+}
+
+/* Summary Card */
+.summary-section {
+    background: #f8f3ea;
+    border: 1.5px solid #e8d4b0;
+    padding: 27px 18px 30px 19px;
+    margin: 32px 0 40px 0;
+    border-radius: 12px;
+    font-family: 'Charter', 'Georgia', serif;
+}
+.summary-section h2 {
+    color: #262220;
+    font-size: 22.5px;
+    margin-bottom: 10px;
+    font-weight: 800;
+    font-family: 'Charter', 'Georgia', serif;
+}
+.summary-section p {
+    color: #272016;
+    font-size: 18px;
+    letter-spacing: 0.01em;
+    line-height: 1.98;
+}
+
+/* Section Titles */
+.planets-section h2 {
+    color: #222;
+    border-bottom: 1px solid #e7dbbc;
+    padding-bottom: 9px;
+    margin-bottom: 16px;
+    font-family: 'Charter', 'Georgia', serif;
+    letter-spacing: -0.14px;
+    font-size: 23px;
+}
+
+.planet-name {
+    font-weight: 700;
+    color: #242121;
+    font-size: 18px;
+}
+
+/* Tables remain modern sans for contrast */
+.planets-table th, .planets-table td {
+    font-size: 15px;
+    letter-spacing: .03em;
+}
+
+/* Responsive: Honor mobile scale, keep cards readable */
+@media (max-width: 640px) {
+    .ascendant-lord-section,
+    .summary-section {
+        font-size: 16.2px !important;
+    }
+}
+
+.article-footer {
+    background: #f4f6f9;
+    color: #6b7b85;
+    margin-top: 90px;
+    font-size: 14.5px;
+    padding: 30px 0 10px 0;
+    border-radius: 4px;
+    font-style: italic;
+    border-top: 2.5px solid #f4e6bf;
+}
