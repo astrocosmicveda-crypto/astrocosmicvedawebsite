@@ -28,6 +28,34 @@ const ZODIAC_LORDS = {
     12: 'Jupiter'   // Pisces (Meena)
 };
 
+// Planet name translations
+const PLANET_NAMES = {
+    'en': {
+        'Moon': 'Moon',
+        'Mercury': 'Mercury',
+        'Venus': 'Venus',
+        'Mars': 'Mars',
+        'Jupiter': 'Jupiter',
+        'Saturn': 'Saturn',
+        'Sun': 'Sun',
+        'Ketu': 'Ketu',
+        'Rahu': 'Rahu',
+        'Ascendant': 'Ascendant'
+    },
+    'hi': {
+        'Moon': 'चंद्र',
+        'Mercury': 'बुध',
+        'Venus': 'शुक्र',
+        'Mars': 'मंगल',
+        'Jupiter': 'गुरु',
+        'Saturn': 'शनि',
+        'Sun': 'सूर्य',
+        'Ketu': 'केतु',
+        'Rahu': 'राहु',
+        'Ascendant': 'लग्न'
+    }
+};
+
 // House calculation function
 function getRelativeHouseNumber(ascendantSign, planetSign) {
     return ((planetSign - ascendantSign + 12) % 12) + 1;
@@ -2563,8 +2591,8 @@ function generatePlanetsHouseEffectsHTML(apiResult, language = 'en') {
     "Saturn" ,
     "Sun",
     "Ketu",
-    "Rahu"] 
-let htmlOutput = "";
+    "Rahu"];
+    let htmlOutput = "";
     var planetDetail = apiResult.output[1];
     const planetEffects = language === 'hi' ? PLANET_EFFECTS_BY_HOUSE_HINDI : PLANET_EFFECTS_BY_HOUSE;
     const texts = language === 'hi' ? {
@@ -2580,11 +2608,12 @@ let htmlOutput = "";
     for (var planet of planetsList) {
         const houseNum = planetDetail[planet].house_number;
         const effect = planetEffects[planet] && planetEffects[planet][houseNum] ? planetEffects[planet][houseNum].effect : '';
+        const planetName = PLANET_NAMES[language] && PLANET_NAMES[language][planet] ? PLANET_NAMES[language][planet] : planet;
         
 htmlOutput += `
     <div class="ascendant-lord-section" style="margin-top: 60px;">
     <h2>
-      ${planet} ${texts.inHouse} ${houseNum}${getOrdinalSuffix(houseNum)} ${texts.house}
+      ${planetName} ${texts.inHouse} ${getOrdinal(houseNum, language)} ${texts.house}
     </h2>
     <div style="margin-top: 10px;">
       <h3 style="color: #75623e; font-weight: 600;">${texts.classicalEffects}</h3>
@@ -2687,9 +2716,10 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
                 const degree = planetInfo.normDegree ? planetInfo.normDegree.toFixed(2) : 'N/A';
                 const retroStatus = planetInfo.isRetro === 'true' || planetInfo.isRetro === true ? texts.retrograde : texts.direct;
                 const retroColor = planetInfo.isRetro === 'true' || planetInfo.isRetro === true ? '#d32f2f' : '#2e7d32';
+                const translatedPlanetName = PLANET_NAMES[language] && PLANET_NAMES[language][planetName] ? PLANET_NAMES[language][planetName] : planetName;
                 planetsHTML += `
                     <tr>
-                        <td class="planet-name"><strong>${planetName}</strong></td>
+                        <td class="planet-name"><strong>${translatedPlanetName}</strong></td>
                         <td>${signName}</td>
                         <td>${degree}°</td>
                         <td style="color: ${retroColor}; font-weight: 500;">${retroStatus}</td>
@@ -2721,9 +2751,10 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
             }
 
             if (lordObj && lordObj.effect) {
+                const translatedPlanetName = PLANET_NAMES[language] && PLANET_NAMES[language][lordObj.planet] ? PLANET_NAMES[language][lordObj.planet] : lordObj.planet;
                 houseLordsHTML += `
                 <div class="ascendant-lord-section" style="margin-top: 60px;">
-<h2>${getOrdinal(lordObj.houseLordNum, language)} ${texts.houseLord} (${lordObj.planet}) ${texts.inHouse} ${getOrdinal(lordObj.house, language)} ${texts.house}</h2>
+<h2>${getOrdinal(lordObj.houseLordNum, language)} ${texts.houseLord} (${translatedPlanetName}) ${texts.inHouse} ${getOrdinal(lordObj.house, language)} ${texts.house}</h2>
                     <div style="background: #f9f9f9; padding: 25px; border-left: 4px solid #1a1a1a; margin-bottom: 30px;">
                         <p><strong>${texts.lordIsIn} </strong> ${lordObj.signName}</p>
                     </div>
@@ -3078,7 +3109,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Generate article HTML
             const birthDate = new Date(dateOfBirth);
-            const formattedDate = birthDate.toLocaleDateString('en-IN', { 
+            const dateLocale = language === 'hi' ? 'hi-IN' : 'en-IN';
+            const formattedDate = birthDate.toLocaleDateString(dateLocale, { 
                 weekday: 'long',
                 year: 'numeric', 
                 month: 'long', 
