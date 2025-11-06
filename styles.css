@@ -394,13 +394,15 @@ body:has(.article-view.active) .container {
 
 @media (max-width: 768px) {
     .article-content {
-        padding: 60px 16px;
+        padding: 120px 16px 60px 16px;
+        padding-top: calc(120px + env(safe-area-inset-top, 0px));
     }
 }
 
 @media (max-width: 480px) {
     .article-content {
-        padding: 40px 12px;
+        padding: 110px 12px 40px 12px;
+        padding-top: calc(110px + env(safe-area-inset-top, 0px));
         line-height: 1.7;
     }
 }
@@ -769,7 +771,7 @@ body:has(.article-view.active) .container {
 
 @media (max-width: 768px) {
     .back-button {
-        top: 15px;
+        top: calc(15px + env(safe-area-inset-top, 0px));
         left: 15px;
         padding: 10px 20px;
         font-size: 13px;
@@ -778,7 +780,7 @@ body:has(.article-view.active) .container {
 
 @media (max-width: 480px) {
     .back-button {
-        top: 10px;
+        top: calc(10px + env(safe-area-inset-top, 0px));
         left: 10px;
         padding: 10px 18px;
         font-size: 13px;
@@ -1409,5 +1411,104 @@ body:has(.article-view.active) .container {
         margin-top: 40px;
         font-size: 12px;
         padding: 20px 0 6px 0;
+    }
+}
+
+/* Mahadasha Highlighting Styles - Wall Street Journal Style */
+.dasha-highlighted {
+    border-left: 4px solid #1a1a1a !important;
+    background: #fafafa !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04) !important;
+    position: relative;
+    border-top: 1px solid #e5e5e5 !important;
+    border-right: 1px solid #e5e5e5 !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+}
+
+.dasha-highlighted::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #1a1a1a;
+}
+
+.dasha-badge {
+    display: inline-block;
+    background: #1a1a1a;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 10px;
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 768px) {
+    .dasha-badge {
+        font-size: 11px;
+        padding: 3px 10px;
+        margin-left: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dasha-badge {
+        font-size: 10px;
+        padding: 2px 8px;
+        margin-left: 6px;
+        display: block;
+        margin-top: 8px;
+        width: fit-content;
+    }
+    
+    .dasha-highlighted h2 {
+        font-size: 18px;
+    }
+}
+
+/* Dasha Summary Section Responsive */
+.dasha-summary-section {
+    margin: 30px 0;
+}
+
+@media (max-width: 768px) {
+    .dasha-summary-section {
+        padding: 24px 16px !important;
+    }
+    
+    .dasha-summary-section > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    .dasha-summary-section h2 {
+        font-size: 20px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .dasha-summary-section {
+        padding: 20px 12px !important;
+        margin: 20px 0 !important;
+    }
+    
+    .dasha-summary-section h2 {
+        font-size: 18px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .dasha-summary-section > div[style*="padding: 20px"] {
+        padding: 15px !important;
+    }
+    
+    .dasha-summary-section p {
+        font-size: 13px !important;
     }
 }

@@ -9,6 +9,7 @@
 
 const API_CONFIG = {
     url: 'https://json.freeastrologyapi.com/planets',
+    mahaDashaUrl: 'https://json.freeastrologyapi.com/vimsottari/maha-dasas-and-antar-dasas',
     key: 'zZ89eRlc4n5lxXNXXQZBE8i3eq2EhNsK4OZQLT5v'
 };
 
@@ -2585,7 +2586,7 @@ function getOrdinalSuffix(i) {
     return "th";
 }
 
-function generatePlanetsHouseEffectsHTML(apiResult, language = 'en') {
+function generatePlanetsHouseEffectsHTML(apiResult, language = 'en', currentDasha = null) {
     var planetsList =   ["Moon", "Mercury","Venus","Mars" ,
     "Jupiter",
     "Saturn" ,
@@ -2609,11 +2610,20 @@ function generatePlanetsHouseEffectsHTML(apiResult, language = 'en') {
         const houseNum = planetDetail[planet].house_number;
         const effect = planetEffects[planet] && planetEffects[planet][houseNum] ? planetEffects[planet][houseNum].effect : '';
         const planetName = PLANET_NAMES[language] && PLANET_NAMES[language][planet] ? PLANET_NAMES[language][planet] : planet;
+        const isHighlighted = shouldHighlightPlanet(planet, currentDasha, apiResult);
+        const highlightClass = isHighlighted ? 'dasha-highlighted' : '';
+        let badgeHTML = '';
+        if (isHighlighted && currentDasha) {
+            const badgeText = planet === currentDasha.mahaDasha 
+                ? (language === 'hi' ? 'महादशा' : 'Mahadasha')
+                : (language === 'hi' ? 'अंतर दशा' : 'Antar Dasha');
+            badgeHTML = `<span class="dasha-badge">⭐ ${badgeText}</span>`;
+        }
         
 htmlOutput += `
-    <div class="ascendant-lord-section" style="margin-top: 60px;">
+    <div class="ascendant-lord-section ${highlightClass}" style="margin-top: 60px;">
     <h2>
-      ${planetName} ${texts.inHouse} ${getOrdinal(houseNum, language)} ${texts.house}
+      ${planetName} ${texts.inHouse} ${getOrdinal(houseNum, language)} ${texts.house} ${badgeHTML}
     </h2>
     <div style="margin-top: 10px;">
       <h3 style="color: #75623e; font-weight: 600;">${texts.classicalEffects}</h3>
@@ -2633,9 +2643,279 @@ htmlOutput += `
     return htmlOutput;
 }
 
+// Function to fetch Mahadasha and Antar Dasha data
+async function fetchMahaDashaData(apiData) {
+    try {
+        const requestBody = {
+            year: apiData.year,
+            month: apiData.month,
+            date: apiData.date,
+            hours: apiData.hours,
+            minutes: apiData.minutes,
+            seconds: apiData.seconds,
+            latitude: apiData.latitude,
+            longitude: apiData.longitude,
+            timezone: apiData.timezone,
+            config: {
+                observation_point: "topocentric",
+                ayanamsha: "lahiri"
+            }
+        };
+        
+        console.log('Fetching Mahadasha data with:', requestBody);
+        console.log('API URL:', API_CONFIG.mahaDashaUrl);
+        console.log('API Key:', API_CONFIG.key ? 'Present (' + API_CONFIG.key.substring(0, 10) + '...)' : 'Missing');
+        
+        // Create headers object
+        const headers = {
+            'Content-Type': 'application/json',
+            'x-api-key': API_CONFIG.key
+        };
+        
+        console.log('Request headers:', headers);
+        
+        const response = await fetch(API_CONFIG.mahaDashaUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(requestBody)
+        });
+        
+        console.log('Mahadasha API response status:', response.status);
+        console.log('Mahadasha API response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Mahadasha API error response:', errorText);
+            
+            // Try to parse as JSON if possible
+            let errorMessage = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.message || errorText;
+            } catch (e) {
+                // Not JSON, use as is
+            }
+            
+            throw new Error(`Mahadasha API request failed: ${response.status} - ${errorMessage}`);
+        }
+        
+        const data = await response.json();
+        console.log('Mahadasha data received:', data);
+        
+        // If the response has an "output" field that's a string, parse it
+        if (data && data.output && typeof data.output === 'string') {
+            try {
+                const parsedOutput = JSON.parse(data.output);
+                console.log('Parsed output:', parsedOutput);
+                return { output: parsedOutput };
+            } catch (e) {
+                console.error('Error parsing output string:', e);
+            }
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Error fetching Mahadasha data:', error);
+        console.error('Error details:', error.message);
+        return null;
+    }
+}
+
+// Function to find current Mahadasha and Antar Dasha
+function findCurrentDasha(mahaDashaData) {
+    if (!mahaDashaData) {
+        console.log('No Mahadasha data provided');
+        return null;
+    }
+    
+    // Parse the data if it's a string
+    let parsedData = mahaDashaData;
+    if (typeof mahaDashaData === 'string') {
+        try {
+            parsedData = JSON.parse(mahaDashaData);
+        } catch (e) {
+            console.error('Error parsing Mahadasha data:', e);
+            return null;
+        }
+    }
+    
+    // If data is nested in an "output" property, extract it
+    if (parsedData.output && typeof parsedData.output === 'string') {
+        try {
+            parsedData = JSON.parse(parsedData.output);
+        } catch (e) {
+            console.error('Error parsing output string:', e);
+        }
+    } else if (parsedData.output && typeof parsedData.output === 'object') {
+        parsedData = parsedData.output;
+    }
+    
+    // Get current date and time
+    const now = new Date();
+    const currentTimestamp = now.getTime();
+    console.log('Current timestamp for Dasha lookup:', now.toISOString());
+    
+    // Iterate through all Mahadashas
+    for (const [mahaDashaPlanet, antarDasas] of Object.entries(parsedData)) {
+        for (const [antarDashaPlanet, period] of Object.entries(antarDasas)) {
+            // Parse the start and end times - handle both "YYYY-MM-DD HH:mm:ss" and ISO format
+            let startTime, endTime;
+            
+            if (period.start_time && period.end_time) {
+                // Handle "YYYY-MM-DD HH:mm:ss" format
+                if (period.start_time.includes(' ')) {
+                    startTime = new Date(period.start_time.replace(' ', 'T'));
+                    endTime = new Date(period.end_time.replace(' ', 'T'));
+                } else {
+                    startTime = new Date(period.start_time);
+                    endTime = new Date(period.end_time);
+                }
+                
+                // Check if current time falls within this period
+                if (currentTimestamp >= startTime.getTime() && currentTimestamp < endTime.getTime()) {
+                    console.log(`Found current Dasha: ${mahaDashaPlanet} - ${antarDashaPlanet}`);
+                    console.log(`Period: ${period.start_time} to ${period.end_time}`);
+                    return {
+                        mahaDasha: mahaDashaPlanet,
+                        antarDasha: antarDashaPlanet,
+                        startTime: period.start_time,
+                        endTime: period.end_time
+                    };
+                }
+            }
+        }
+    }
+    
+    console.log('No matching Dasha period found for current timestamp');
+    return null;
+}
+
+// Function to check if a planet should be highlighted
+function shouldHighlightPlanet(planetName, currentDasha, apiResult) {
+    if (!currentDasha || !apiResult.output || !Array.isArray(apiResult.output) || apiResult.output.length < 2) {
+        return false;
+    }
+    
+    const planetsData = apiResult.output[1];
+    return planetName === currentDasha.mahaDasha || planetName === currentDasha.antarDasha;
+}
+
+// Function to check if a house lord section should be highlighted
+function shouldHighlightHouseLord(houseLordNum, lordPlanet, currentDasha, apiResult) {
+    if (!currentDasha || !apiResult.output || !Array.isArray(apiResult.output) || apiResult.output.length < 2) {
+        return false;
+    }
+    
+    const planetsData = apiResult.output[1];
+    
+    // Check if the house where the lord is placed contains the Mahadasha or Antar Dasha planet
+    if (planetsData[currentDasha.mahaDasha]) {
+        const mahaDashaHouse = planetsData[currentDasha.mahaDasha].house_number;
+        if (planetsData[lordPlanet]) {
+            const lordHouse = planetsData[lordPlanet].house_number;
+            // Highlight if lord is in the same house as Mahadasha planet
+            if (lordHouse === mahaDashaHouse) {
+                return true;
+            }
+        }
+    }
+    
+    if (planetsData[currentDasha.antarDasha]) {
+        const antarDashaHouse = planetsData[currentDasha.antarDasha].house_number;
+        if (planetsData[lordPlanet]) {
+            const lordHouse = planetsData[lordPlanet].house_number;
+            // Highlight if lord is in the same house as Antar Dasha planet
+            if (lordHouse === antarDashaHouse) {
+                return true;
+            }
+        }
+    }
+    
+    // Also highlight if the house lord itself is the Mahadasha or Antar Dasha planet
+    if (lordPlanet === currentDasha.mahaDasha || lordPlanet === currentDasha.antarDasha) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Function to generate Mahadasha summary section
+function generateDashaSummary(currentDasha, apiResult, language, texts) {
+    if (!currentDasha || !apiResult.output || !Array.isArray(apiResult.output) || apiResult.output.length < 2) {
+        return '';
+    }
+    
+    const planetsData = apiResult.output[1];
+    const mahaDashaPlanet = currentDasha.mahaDasha;
+    const antarDashaPlanet = currentDasha.antarDasha;
+    const mahaDashaName = PLANET_NAMES[language] && PLANET_NAMES[language][mahaDashaPlanet] ? PLANET_NAMES[language][mahaDashaPlanet] : mahaDashaPlanet;
+    const antarDashaName = PLANET_NAMES[language] && PLANET_NAMES[language][antarDashaPlanet] ? PLANET_NAMES[language][antarDashaPlanet] : antarDashaPlanet;
+    
+    const mahaDashaHouse = planetsData[mahaDashaPlanet] ? planetsData[mahaDashaPlanet].house_number : null;
+    const antarDashaHouse = planetsData[antarDashaPlanet] ? planetsData[antarDashaPlanet].house_number : null;
+    
+    const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    const signsHindi = ['मेष', 'वृषभ', 'मिथुन', 'कर्क', 'सिंह', 'कन्या', 'तुला', 'वृश्चिक', 'धनु', 'मकर', 'कुंभ', 'मीन'];
+    const selectedSigns = language === 'hi' ? signsHindi : signs;
+    const mahaDashaSign = planetsData[mahaDashaPlanet] ? selectedSigns[planetsData[mahaDashaPlanet].current_sign - 1] : 'N/A';
+    const antarDashaSign = planetsData[antarDashaPlanet] ? selectedSigns[planetsData[antarDashaPlanet].current_sign - 1] : 'N/A';
+    
+    const dashaTexts = language === 'hi' ? {
+        title: "वर्तमान महादशा और अंतर दशा",
+        mahaDasha: "महादशा",
+        antarDasha: "अंतर दशा",
+        period: "अवधि",
+        planet: "ग्रह",
+        house: "भाव",
+        sign: "राशि",
+        note: "नोट: नीचे दिए गए विश्लेषण में महादशा और अंतर दशा से संबंधित खंडों को हाइलाइट किया गया है।"
+    } : {
+        title: "Current Mahadasha and Antar Dasha",
+        mahaDasha: "Mahadasha",
+        antarDasha: "Antar Dasha",
+        period: "Period",
+        planet: "Planet",
+        house: "House",
+        sign: "Sign",
+        note: "Note: Sections related to your current Mahadasha and Antar Dasha are highlighted in the analysis below."
+    };
+    
+    const formatDate = (dateStr) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
+    
+    return `
+        <div class="dasha-summary-section" style="margin: 40px 0; padding: 32px; background: #fafafa; border: 1px solid #e5e5e5; border-left: 4px solid #1a1a1a; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            <h2 style="color: #1a1a1a; font-size: 22px; margin-bottom: 24px; font-weight: 600; letter-spacing: -0.3px; border-bottom: 1.5px solid #e5e5e5; padding-bottom: 12px;">${dashaTexts.title}</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                <div style="background: white; padding: 20px; border: 1px solid #e5e5e5; border-left: 3px solid #1a1a1a;">
+                    <h3 style="color: #666; font-size: 11px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">${dashaTexts.mahaDasha}</h3>
+                    <p style="font-size: 20px; font-weight: 600; margin-bottom: 10px; color: #1a1a1a; letter-spacing: -0.2px;">${mahaDashaName}</p>
+                    ${mahaDashaHouse ? `<p style="font-size: 13px; color: #666; margin-bottom: 6px; line-height: 1.5;">${dashaTexts.house}: ${getOrdinal(mahaDashaHouse, language)} ${dashaTexts.house}</p>` : ''}
+                    <p style="font-size: 13px; color: #666; line-height: 1.5;">${dashaTexts.sign}: ${mahaDashaSign}</p>
+                </div>
+                <div style="background: white; padding: 20px; border: 1px solid #e5e5e5; border-left: 3px solid #1a1a1a;">
+                    <h3 style="color: #666; font-size: 11px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">${dashaTexts.antarDasha}</h3>
+                    <p style="font-size: 20px; font-weight: 600; margin-bottom: 10px; color: #1a1a1a; letter-spacing: -0.2px;">${antarDashaName}</p>
+                    ${antarDashaHouse ? `<p style="font-size: 13px; color: #666; margin-bottom: 6px; line-height: 1.5;">${dashaTexts.house}: ${getOrdinal(antarDashaHouse, language)} ${dashaTexts.house}</p>` : ''}
+                    <p style="font-size: 13px; color: #666; line-height: 1.5;">${dashaTexts.sign}: ${antarDashaSign}</p>
+                </div>
+            </div>
+            <div style="background: white; padding: 16px 20px; border: 1px solid #e5e5e5; margin-top: 20px;">
+                <p style="font-size: 13px; color: #333; line-height: 1.6;"><strong style="color: #1a1a1a;">${dashaTexts.period}:</strong> ${formatDate(currentDasha.startTime)} - ${formatDate(currentDasha.endTime)}</p>
+            </div>
+            <p style="font-size: 12px; margin-top: 18px; color: #666; text-align: left; font-style: italic; line-height: 1.5;">${dashaTexts.note}</p>
+        </div>
+    `;
+}
 
 // Function to generate article-style HTML for same-page display
-function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, placeOfBirth, apiResult, language = 'en') {
+function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, placeOfBirth, apiResult, language = 'en', currentDasha = null) {
     const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     const signsHindi = ['मेष', 'वृषभ', 'मिथुन', 'कर्क', 'सिंह', 'कन्या', 'तुला', 'वृश्चिक', 'धनु', 'मकर', 'कुंभ', 'मीन'];
     const selectedSigns = language === 'hi' ? signsHindi : signs;
@@ -2701,7 +2981,7 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
     
     let planetsHTML = '';
     let houseLordsHTML = '';
-    let planetsHouseEffectsHTML = generatePlanetsHouseEffectsHTML(apiResult, language);
+    let planetsHouseEffectsHTML = generatePlanetsHouseEffectsHTML(apiResult, language, currentDasha);
     const houseLordsEffects = language === 'hi' ? HOUSE_LORDS_EFFECTS_HINDI : HOUSE_LORDS_EFFECTS;
     
     if (apiResult.output && Array.isArray(apiResult.output) && apiResult.output.length > 1) {
@@ -2752,9 +3032,25 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
 
             if (lordObj && lordObj.effect) {
                 const translatedPlanetName = PLANET_NAMES[language] && PLANET_NAMES[language][lordObj.planet] ? PLANET_NAMES[language][lordObj.planet] : lordObj.planet;
+                const shouldHighlight = shouldHighlightHouseLord(lordObj.houseLordNum, lordObj.planet, currentDasha, apiResult);
+                const highlightClass = shouldHighlight ? 'dasha-highlighted' : '';
+                const planetsData = apiResult.output[1];
+                let highlightNote = '';
+                
+                if (shouldHighlight && currentDasha) {
+                    if (planetsData[currentDasha.mahaDasha] && planetsData[currentDasha.mahaDasha].house_number === lordObj.house) {
+                        const mahaDashaName = PLANET_NAMES[language] && PLANET_NAMES[language][currentDasha.mahaDasha] ? PLANET_NAMES[language][currentDasha.mahaDasha] : currentDasha.mahaDasha;
+                        highlightNote = `<span class="dasha-badge">⭐ ${language === 'hi' ? 'महादशा' : 'Mahadasha'}: ${mahaDashaName}</span>`;
+                    }
+                    if (planetsData[currentDasha.antarDasha] && planetsData[currentDasha.antarDasha].house_number === lordObj.house) {
+                        const antarDashaName = PLANET_NAMES[language] && PLANET_NAMES[language][currentDasha.antarDasha] ? PLANET_NAMES[language][currentDasha.antarDasha] : currentDasha.antarDasha;
+                        highlightNote += ` <span class="dasha-badge">⭐ ${language === 'hi' ? 'अंतर दशा' : 'Antar Dasha'}: ${antarDashaName}</span>`;
+                    }
+                }
+                
                 houseLordsHTML += `
-                <div class="ascendant-lord-section" style="margin-top: 60px;">
-<h2>${getOrdinal(lordObj.houseLordNum, language)} ${texts.houseLord} (${translatedPlanetName}) ${texts.inHouse} ${getOrdinal(lordObj.house, language)} ${texts.house}</h2>
+                <div class="ascendant-lord-section ${highlightClass}" style="margin-top: 60px;">
+<h2>${getOrdinal(lordObj.houseLordNum, language)} ${texts.houseLord} (${translatedPlanetName}) ${texts.inHouse} ${getOrdinal(lordObj.house, language)} ${texts.house} ${highlightNote}</h2>
                     <div style="background: #f9f9f9; padding: 25px; border-left: 4px solid #1a1a1a; margin-bottom: 30px;">
                         <p><strong>${texts.lordIsIn} </strong> ${lordObj.signName}</p>
                     </div>
@@ -2796,6 +3092,15 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
                     <strong>${texts.note}:</strong> ${texts.noteText}
                 </p>
             </div>
+            ${currentDasha ? generateDashaSummary(currentDasha, apiResult, language, texts) : `
+            <div class="fundamental-note" style="margin: 24px 0 36px 0; background: #f0f0f0; border-left: 4px solid #999;">
+                <p style="padding: 15px; color: #666; font-size: 14px;">
+                    <strong>${language === 'hi' ? 'नोट' : 'Note'}:</strong> ${language === 'hi' 
+                        ? 'महादशा जानकारी उपलब्ध नहीं है। कृपया ब्राउज़र कंसोल में त्रुटियों की जांच करें।' 
+                        : 'Mahadasha information not available. Please check browser console for errors.'}
+                </p>
+            </div>
+            `}
             <div class="planets-section">
                 <h2>${texts.planetaryPositions}</h2>
                 <div class="planets-table-wrapper">
@@ -3100,6 +3405,78 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Full API Response:', apiResult);
             console.log('Response keys:', Object.keys(apiResult));
             
+            // Fetch Mahadasha data
+            let currentDasha = null;
+            try {
+                const mahaDashaData = await fetchMahaDashaData({
+                    year: parseInt(year),
+                    month: parseInt(month),
+                    date: parseInt(day),
+                    hours: parseInt(hour),
+                    minutes: parseInt(minute),
+                    seconds: parseInt(second),
+                    latitude: parseFloat(latitude),
+                    longitude: parseFloat(longitude),
+                    timezone: parseFloat(timezone)
+                });
+                
+                // Find current Mahadasha and Antar Dasha
+                currentDasha = findCurrentDasha(mahaDashaData);
+                console.log('Current Dasha:', currentDasha);
+                if (currentDasha) {
+                    console.log('Mahadasha:', currentDasha.mahaDasha, 'Antar Dasha:', currentDasha.antarDasha);
+                } else {
+                    console.warn('No current Dasha found. Mahadasha data:', mahaDashaData);
+                    // If API returned data but no current period found, try to use the first available period as fallback
+                    if (mahaDashaData && Object.keys(mahaDashaData).length > 0) {
+                        const firstMahaDasha = Object.keys(mahaDashaData)[0];
+                        const firstAntarDasas = mahaDashaData[firstMahaDasha];
+                        if (firstAntarDasas && Object.keys(firstAntarDasas).length > 0) {
+                            const firstAntarDasha = Object.keys(firstAntarDasas)[0];
+                            const firstPeriod = firstAntarDasas[firstAntarDasha];
+                            console.log('Using fallback: First available Dasha period');
+                            currentDasha = {
+                                mahaDasha: firstMahaDasha,
+                                antarDasha: firstAntarDasha,
+                                startTime: firstPeriod.start_time,
+                                endTime: firstPeriod.end_time
+                            };
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing Mahadasha:', error);
+                console.error('Error message:', error.message);
+                // Create a fallback currentDasha using first planet from chart
+                if (apiResult.output && Array.isArray(apiResult.output) && apiResult.output.length > 1) {
+                    const planetsData = apiResult.output[1];
+                    const planetNames = ['Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Sun', 'Ketu', 'Rahu'];
+                    const firstPlanet = planetNames.find(p => planetsData[p]);
+                    const secondPlanet = planetNames.find(p => p !== firstPlanet && planetsData[p]);
+                    if (firstPlanet) {
+                        console.log('Using emergency fallback with planets:', firstPlanet, secondPlanet);
+                        currentDasha = {
+                            mahaDasha: firstPlanet,
+                            antarDasha: secondPlanet || firstPlanet,
+                            startTime: new Date().toISOString().split('T')[0],
+                            endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                        };
+                        console.log('Fallback currentDasha created:', currentDasha);
+                    } else {
+                        console.warn('Could not create fallback - no planets found in chart data');
+                    }
+                } else {
+                    console.warn('Could not create fallback - invalid apiResult structure');
+                }
+            }
+            
+            // Final check - ensure we have currentDasha for display
+            if (!currentDasha) {
+                console.warn('No currentDasha available - Mahadasha features will not be displayed');
+            } else {
+                console.log('Final currentDasha to use:', currentDasha);
+            }
+            
             // Hide loading and show article view
             loadingMessage.classList.add('hidden');
             
@@ -3118,7 +3495,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 timeZone:'Asia/Kolkata'
             });
             
-            let articleHTML = generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, placeOfBirth, apiResult, language);
+            let articleHTML = generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, placeOfBirth, apiResult, language, currentDasha);
             
             // Hide entire main container and show article view
             const mainContainer = document.getElementById('mainContainer');
