@@ -4,6 +4,11 @@
     box-sizing: border-box;
 }
 
+html {
+    -webkit-text-size-adjust: 100%; /* Prevents iOS text size adjustment */
+    text-size-adjust: 100%;
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     background: #FFFFFF;
@@ -12,6 +17,34 @@ body {
     justify-content: center;
     align-items: center;
     padding: 20px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-x: hidden; /* Prevents horizontal scrolling */
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+}
+
+@media (max-width: 360px) {
+    body {
+        padding: 0;
+    }
+    
+    .container {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
 }
 
 .container {
@@ -22,6 +55,20 @@ body {
     max-width: 520px;
     width: 100%;
     padding: 40px 36px 32px 36px;
+}
+
+@media (max-width: 768px) {
+    .container {
+        max-width: 100%;
+        padding: 30px 24px 24px 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 20px 16px;
+        border-radius: 8px;
+    }
 }
 
 .header {
@@ -48,6 +95,19 @@ body {
     letter-spacing: -0.4px;
 }
 
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.3rem;
+        letter-spacing: -0.2px;
+    }
+}
+
 .header h2 {
     font-size: 1.25rem;
     font-weight: 500;
@@ -55,11 +115,29 @@ body {
     margin-bottom: 10px;
 }
 
+@media (max-width: 768px) {
+    .header h2 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h2 {
+        font-size: 1rem;
+    }
+}
+
 .subtitle {
     font-size: 15px;
     color: #666;
     font-weight: 400;
     margin-bottom: 0;
+}
+
+@media (max-width: 480px) {
+    .subtitle {
+        font-size: 13px;
+    }
 }
 
 .kundli-form {
@@ -82,7 +160,8 @@ body {
     letter-spacing: 0.02em;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     padding: 12px 14px;
     border: 1.2px solid #d1d1d1;
     border-radius: 7px;
@@ -93,8 +172,20 @@ body {
     transition: border-color 0.15s ease;
 }
 
-.form-group input:hover { border-color: #aaa; }
-.form-group input:focus {
+.form-group select {
+    width: 100%;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231a1a1a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+}
+
+.form-group input:hover,
+.form-group select:hover { border-color: #aaa; }
+.form-group input:focus,
+.form-group select:focus {
     outline: none;
     border-color: #1a1a1a;
 }
@@ -135,6 +226,17 @@ body {
     color: #1a1a1a;
     transition: background-color 0.1s ease;
     border-bottom: 1px solid #f3f3f3;
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 480px) {
+    .dropdown-item {
+        padding: 14px 12px;
+        font-size: 16px;
+        min-height: 44px; /* Better touch target */
+        display: flex;
+        align-items: center;
+    }
 }
 
 .dropdown-item:last-child {
@@ -182,6 +284,11 @@ body {
     letter-spacing: 0.02em;
     width: 100%;
     box-shadow: 0 2px 9px rgba(30,30,30,0.09);
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px; /* Better touch target for mobile */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .submit-btn:hover { background: #333; }
@@ -233,6 +340,8 @@ body {
     color: #333;
     line-height: 1.7;
     font-size: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .result-content p { margin-bottom: 8px; }
 .result-content strong { font-weight: 500; color: #1a1a1a; }
@@ -279,6 +388,21 @@ body:has(.article-view.active) .container {
     font-family: 'Charter', 'Crimson Text', Georgia, serif; /* Serif for article/report */
     line-height: 1.82;
     color: #201e1d;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+    .article-content {
+        padding: 60px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-content {
+        padding: 40px 12px;
+        line-height: 1.7;
+    }
 }
 
 
@@ -288,6 +412,20 @@ body:has(.article-view.active) .container {
     border-bottom: 3px solid #1a1a1a;
 }
 
+@media (max-width: 768px) {
+    .article-header {
+        padding: 0 0 35px 0;
+        border-bottom-width: 2px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-header {
+        padding: 0 0 25px 0;
+        border-bottom-width: 2px;
+    }
+}
+
 .article-header h1 {
     font-size: 52px;
     font-weight: 600;
@@ -295,6 +433,22 @@ body:has(.article-view.active) .container {
     margin-bottom: 20px;
     letter-spacing: -1px;
     color: #1a1a1a;
+}
+
+@media (max-width: 768px) {
+    .article-header h1 {
+        font-size: 36px;
+        letter-spacing: -0.5px;
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-header h1 {
+        font-size: 28px;
+        letter-spacing: -0.3px;
+        margin-bottom: 12px;
+    }
 }
 
 .article-meta {
@@ -310,8 +464,32 @@ body:has(.article-view.active) .container {
     margin: 60px auto;
 }
 
+@media (max-width: 768px) {
+    .article-body {
+        margin: 40px auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-body {
+        margin: 30px auto;
+    }
+}
+
 .article-intro {
     margin-bottom: 50px;
+}
+
+@media (max-width: 768px) {
+    .article-intro {
+        margin-bottom: 35px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-intro {
+        margin-bottom: 28px;
+    }
 }
 
 .article-intro p {
@@ -321,12 +499,43 @@ body:has(.article-view.active) .container {
     color: #2c2c2c;
 }
 
+@media (max-width: 768px) {
+    .article-intro p {
+        font-size: 18px;
+        line-height: 1.75;
+        margin-bottom: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-intro p {
+        font-size: 16px;
+        line-height: 1.7;
+        margin-bottom: 14px;
+    }
+}
+
 .birth-details-box {
     font-family: 'Inter', sans-serif;
     background: #f9f9f9;
     padding: 30px;
     border-left: 4px solid #1a1a1a;
     margin: 40px 0;
+}
+
+@media (max-width: 768px) {
+    .birth-details-box {
+        padding: 20px;
+        margin: 30px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .birth-details-box {
+        padding: 16px;
+        margin: 24px 0;
+        border-left-width: 3px;
+    }
 }
 
 .birth-details-box h2 {
@@ -344,8 +553,35 @@ body:has(.article-view.active) .container {
     margin: 10px 0;
 }
 
+@media (max-width: 768px) {
+    .birth-details-box p {
+        font-size: 15px;
+        margin: 8px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .birth-details-box p {
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 6px 0;
+    }
+}
+
 .planets-section {
     margin: 50px 0;
+}
+
+@media (max-width: 768px) {
+    .planets-section {
+        margin: 40px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .planets-section {
+        margin: 30px 0;
+    }
 }
 
 .planets-section h2 {
@@ -354,6 +590,21 @@ body:has(.article-view.active) .container {
     margin-bottom: 30px;
     text-align: center;
     letter-spacing: -0.5px;
+}
+
+@media (max-width: 768px) {
+    .planets-section h2 {
+        font-size: 26px;
+        margin-bottom: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .planets-section h2 {
+        font-size: 22px;
+        margin-bottom: 20px;
+        letter-spacing: -0.3px;
+    }
 }
 
 .planets-table-wrapper {
@@ -384,9 +635,38 @@ body:has(.article-view.active) .container {
     border-bottom: 3px solid #1a1a1a;
 }
 
+@media (max-width: 768px) {
+    .planets-table th {
+        padding: 12px 14px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .planets-table th {
+        padding: 10px 8px;
+        font-size: 11px;
+        letter-spacing: 0.3px;
+    }
+}
+
 .planets-table td {
     padding: 16px 20px;
     border-bottom: 1px solid #e5e5e5;
+}
+
+@media (max-width: 768px) {
+    .planets-table td {
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .planets-table td {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
 }
 
 .planets-table tbody tr:hover {
@@ -399,6 +679,18 @@ body:has(.article-view.active) .container {
 
 .planet-name {
     font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .planet-name {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .planet-name {
+        font-size: 14px;
+    }
 }
 
 .planets-table th:nth-child(1),
@@ -438,6 +730,22 @@ body:has(.article-view.active) .container {
     letter-spacing: 1px;
 }
 
+@media (max-width: 768px) {
+    .article-footer {
+        margin-top: 60px;
+        padding-top: 30px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-footer {
+        margin-top: 40px;
+        padding-top: 24px;
+        font-size: 11px;
+    }
+}
+
 .back-button {
     position: fixed;
     top: 20px;
@@ -452,20 +760,109 @@ body:has(.article-view.active) .container {
     font-weight: 600;
     z-index: 1000;
     transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px; /* Better touch target for mobile */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .back-button {
+        top: 15px;
+        left: 15px;
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .back-button {
+        top: 10px;
+        left: 10px;
+        padding: 10px 18px;
+        font-size: 13px;
+        border-radius: 4px;
+        min-height: 44px;
+    }
 }
 
 .back-button:hover {
     background: #333;
 }
 
-/* Responsive Design */
+/* Responsive Design - Enhanced */
+@media (max-width: 768px) {
+    .kundli-form {
+        gap: 22px;
+    }
+    
+    .form-group input {
+        padding: 11px 12px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .submit-btn {
+        font-size: 14px;
+        padding: 12px 0;
+    }
+}
+
 @media (max-width: 640px) {
-    .container { padding: 24px 10px; }
-    .header h1 { font-size: 1.48rem; }
-    .header h2 { font-size: 1.06rem; }
-    .subtitle { font-size: 13px; }
-    .kundli-form { gap: 18px; }
-    .submit-btn { font-size: 13px; padding: 12px 0; }
+    .container { 
+        padding: 24px 16px; 
+    }
+    .header h1 { 
+        font-size: 1.48rem; 
+    }
+    .header h2 { 
+        font-size: 1.06rem; 
+    }
+    .subtitle { 
+        font-size: 13px; 
+    }
+    .kundli-form { 
+        gap: 20px; 
+    }
+    .submit-btn { 
+        font-size: 14px; 
+        padding: 12px 0; 
+    }
+}
+
+@media (max-width: 480px) {
+    .kundli-form {
+        gap: 18px;
+        margin-top: 20px;
+    }
+    
+    .form-group label {
+        font-size: 12px;
+    }
+    
+    .form-group input {
+        padding: 10px 12px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .submit-btn {
+        font-size: 14px;
+        padding: 11px 0;
+    }
+    
+    .result {
+        margin-top: 24px;
+        padding: 16px 14px;
+    }
+    
+    .result h2 {
+        font-size: 16px;
+    }
+    
+    .result-content {
+        font-size: 13px;
+        line-height: 1.6;
+    }
 }
 /* Improved House Analysis Card */
 .ascendant-lord-section {
@@ -489,6 +886,20 @@ body:has(.article-view.active) .container {
     margin-bottom: 19px;
     font-weight: 700;
 }
+
+@media (max-width: 768px) {
+    .ascendant-lord-section h2 {
+        font-size: 24px;
+        margin-bottom: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ascendant-lord-section h2 {
+        font-size: 20px;
+        margin-bottom: 14px;
+    }
+}
 .ascendant-lord-section h3 {
     font-size: 18px;
     font-weight: 600;
@@ -496,10 +907,42 @@ body:has(.article-view.active) .container {
     margin-top: 18px;
     margin-bottom: 13px;
 }
+
+@media (max-width: 768px) {
+    .ascendant-lord-section h3 {
+        font-size: 16px;
+        margin-top: 16px;
+        margin-bottom: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ascendant-lord-section h3 {
+        font-size: 15px;
+        margin-top: 14px;
+        margin-bottom: 10px;
+    }
+}
+
 .ascendant-lord-section p {
     color: #223;
     font-size: 16px;
     margin-bottom: 9px;
+}
+
+@media (max-width: 768px) {
+    .ascendant-lord-section p {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ascendant-lord-section p {
+        font-size: 14px;
+        margin-bottom: 7px;
+        line-height: 1.7;
+    }
 }
 
 .fundamental-note {
@@ -521,17 +964,62 @@ body:has(.article-view.active) .container {
     border-radius: 16px;
     box-shadow: 0 2px 10px rgba(30,60,130,0.07), 0 6px 22px rgba(180,180,140,0.06);
 }
+
+@media (max-width: 768px) {
+    .summary-section {
+        padding: 24px 18px 26px 18px;
+        margin: 28px 0 36px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-section {
+        padding: 20px 14px 22px 14px;
+        margin: 24px 0 30px 0;
+        border-radius: 12px;
+    }
+}
+
 .summary-section h2 {
     color: #195fa3;
     font-size: 26px;
     margin-bottom: 13px;
     font-weight: 700;
 }
+
+@media (max-width: 768px) {
+    .summary-section h2 {
+        font-size: 22px;
+        margin-bottom: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-section h2 {
+        font-size: 19px;
+        margin-bottom: 10px;
+    }
+}
+
 .summary-section p {
     color: #21374a;
     font-size: 17.5px;
     letter-spacing: .01em;
     line-height: 1.75;
+}
+
+@media (max-width: 768px) {
+    .summary-section p {
+        font-size: 16px;
+        line-height: 1.7;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-section p {
+        font-size: 14px;
+        line-height: 1.65;
+    }
 }
 
 .planets-section h2 {
@@ -568,6 +1056,22 @@ body:has(.article-view.active) .container {
     font-style: italic;
     border-top: 2.5px solid #f4e6bf;
 }
+
+@media (max-width: 768px) {
+    .article-footer {
+        margin-top: 60px;
+        font-size: 13px;
+        padding: 24px 0 8px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-footer {
+        margin-top: 40px;
+        font-size: 12px;
+        padding: 20px 0 6px 0;
+    }
+}
 .ascendant-lord-section {
     background: #f9f7f2;
     box-shadow: 0 1px 7px rgba(44,36,23,0.03), 0 8px 24px rgba(180,150,66,0.06);
@@ -578,9 +1082,29 @@ body:has(.article-view.active) .container {
     font-family: 'Charter', 'Georgia', serif;
     transition: box-shadow .16s;
 }
-@media (max-width:640px) {
-    .ascendant-lord-section { padding: 18px 8px 14px 9px; }
+
+@media (max-width: 768px) {
+    .ascendant-lord-section {
+        padding: 24px 20px 20px 20px;
+        margin-bottom: 30px;
+    }
 }
+
+@media (max-width: 640px) {
+    .ascendant-lord-section { 
+        padding: 20px 14px 18px 14px; 
+        margin-bottom: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ascendant-lord-section {
+        padding: 18px 10px 16px 10px;
+        margin-bottom: 24px;
+        border-radius: 10px;
+    }
+}
+
 .ascendant-lord-section h2 {
     font-size: 26px;
     color: #201e1d;
@@ -589,6 +1113,22 @@ body:has(.article-view.active) .container {
     letter-spacing: -0.25px;
     font-family: 'Charter', 'Georgia', serif;
 }
+
+@media (max-width: 768px) {
+    .ascendant-lord-section h2 {
+        font-size: 22px;
+        margin-bottom: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ascendant-lord-section h2 {
+        font-size: 19px;
+        margin-bottom: 12px;
+        letter-spacing: -0.2px;
+    }
+}
+
 .ascendant-lord-section h3 {
     font-size: 18px;
     font-weight: 600;
@@ -598,12 +1138,45 @@ body:has(.article-view.active) .container {
     letter-spacing: 0;
     font-family: 'Charter', 'Georgia', serif;
 }
+
+@media (max-width: 768px) {
+    .ascendant-lord-section h3 {
+        font-size: 16px;
+        margin-top: 15px;
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ascendant-lord-section h3 {
+        font-size: 15px;
+        margin-top: 13px;
+        margin-bottom: 9px;
+    }
+}
+
 .ascendant-lord-section p {
     color: #20160f;
     font-size: 18px;
     margin-bottom: 12px;
     line-height: 1.93;
     font-family: 'Charter', 'Georgia', serif;
+}
+
+@media (max-width: 768px) {
+    .ascendant-lord-section p {
+        font-size: 16px;
+        margin-bottom: 11px;
+        line-height: 1.85;
+    }
+}
+
+@media (max-width: 480px) {
+    .ascendant-lord-section p {
+        font-size: 14px;
+        margin-bottom: 10px;
+        line-height: 1.8;
+    }
 }
 
 /* Highlighted Classical Source Note */
@@ -619,6 +1192,20 @@ body:has(.article-view.active) .container {
     line-height: 1.55;
 }
 
+@media (max-width: 768px) {
+    .fundamental-note p {
+        font-size: 16px !important;
+        line-height: 1.5;
+    }
+}
+
+@media (max-width: 480px) {
+    .fundamental-note p {
+        font-size: 14px !important;
+        line-height: 1.45;
+    }
+}
+
 /* Summary Card */
 .summary-section {
     background: #f8f3ea;
@@ -628,6 +1215,22 @@ body:has(.article-view.active) .container {
     border-radius: 12px;
     font-family: 'Charter', 'Georgia', serif;
 }
+
+@media (max-width: 768px) {
+    .summary-section {
+        padding: 22px 16px 26px 16px;
+        margin: 28px 0 35px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-section {
+        padding: 18px 12px 22px 12px;
+        margin: 24px 0 30px 0;
+        border-radius: 10px;
+    }
+}
+
 .summary-section h2 {
     color: #262220;
     font-size: 22.5px;
@@ -635,11 +1238,40 @@ body:has(.article-view.active) .container {
     font-weight: 800;
     font-family: 'Charter', 'Georgia', serif;
 }
+
+@media (max-width: 768px) {
+    .summary-section h2 {
+        font-size: 20px;
+        margin-bottom: 9px;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-section h2 {
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+}
+
 .summary-section p {
     color: #272016;
     font-size: 18px;
     letter-spacing: 0.01em;
     line-height: 1.98;
+}
+
+@media (max-width: 768px) {
+    .summary-section p {
+        font-size: 16px;
+        line-height: 1.85;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-section p {
+        font-size: 14px;
+        line-height: 1.75;
+    }
 }
 
 /* Section Titles */
@@ -653,10 +1285,39 @@ body:has(.article-view.active) .container {
     font-size: 23px;
 }
 
+@media (max-width: 768px) {
+    .planets-section h2 {
+        font-size: 20px;
+        padding-bottom: 8px;
+        margin-bottom: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .planets-section h2 {
+        font-size: 18px;
+        padding-bottom: 7px;
+        margin-bottom: 12px;
+        letter-spacing: -0.1px;
+    }
+}
+
 .planet-name {
     font-weight: 700;
     color: #242121;
     font-size: 18px;
+}
+
+@media (max-width: 768px) {
+    .planet-name {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .planet-name {
+        font-size: 15px;
+    }
 }
 
 /* Tables remain modern sans for contrast */
@@ -665,11 +1326,62 @@ body:has(.article-view.active) .container {
     letter-spacing: .03em;
 }
 
-/* Responsive: Honor mobile scale, keep cards readable */
-@media (max-width: 640px) {
-    .ascendant-lord-section,
-    .summary-section {
-        font-size: 16.2px !important;
+@media (max-width: 768px) {
+    .planets-table th, .planets-table td {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .planets-table th, .planets-table td {
+        font-size: 12px;
+        letter-spacing: .02em;
+    }
+}
+
+/* Enhanced table responsiveness */
+.planets-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 20px 0;
+}
+
+@media (max-width: 480px) {
+    .planets-table-wrapper {
+        margin: 16px -12px;
+        padding: 0 12px;
+    }
+    
+    .planets-table {
+        min-width: 500px;
+    }
+}
+
+/* Ensure table columns are properly sized on mobile */
+@media (max-width: 480px) {
+    .planets-table th:nth-child(1),
+    .planets-table td:nth-child(1) {
+        width: 28%;
+        min-width: 80px;
+    }
+    
+    .planets-table th:nth-child(2),
+    .planets-table td:nth-child(2) {
+        width: 32%;
+        min-width: 100px;
+    }
+    
+    .planets-table th:nth-child(3),
+    .planets-table td:nth-child(3) {
+        width: 20%;
+        min-width: 60px;
+    }
+    
+    .planets-table th:nth-child(4),
+    .planets-table td:nth-child(4) {
+        width: 20%;
+        min-width: 70px;
+        font-size: 11px;
     }
 }
 
@@ -682,4 +1394,20 @@ body:has(.article-view.active) .container {
     border-radius: 4px;
     font-style: italic;
     border-top: 2.5px solid #f4e6bf;
+}
+
+@media (max-width: 768px) {
+    .article-footer {
+        margin-top: 60px;
+        font-size: 13px;
+        padding: 24px 0 8px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-footer {
+        margin-top: 40px;
+        font-size: 12px;
+        padding: 20px 0 6px 0;
+    }
 }
