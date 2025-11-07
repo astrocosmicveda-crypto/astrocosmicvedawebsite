@@ -100,28 +100,55 @@
     <!-- Firebase SDK -->
     <script type="module">
         // Import the functions you need from the SDKs you need
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        // Updated to Firebase JS SDK v10.8.0 (includes fixes from v9.9.0+)
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getFirestore, doc, setDoc, getDoc, serverTimestamp, enableNetwork, disableNetwork } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
         
         // Your web app's Firebase configuration
-        // TODO: Replace with your Firebase config
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCZayQrEmdBrgjT1hfnK6UvbbluMM55RtY",
-  authDomain: "astrocosmicveda-2d8d9.firebaseapp.com",
-  projectId: "astrocosmicveda-2d8d9",
-  storageBucket: "astrocosmicveda-2d8d9.firebasestorage.app",
-  messagingSenderId: "863012994946",
-  appId: "1:863012994946:web:3b46fe9a238e13f906d99b",
-  measurementId: "G-NL3LT7CCMY"
-};
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZayQrEmdBrgjT1hfnK6UvbbluMM55RtY",
+            authDomain: "astrocosmicveda-2d8d9.firebaseapp.com",
+            projectId: "astrocosmicveda-2d8d9",
+            storageBucket: "astrocosmicveda-2d8d9.firebasestorage.app",
+            messagingSenderId: "863012994946",
+            appId: "1:863012994946:web:3b46fe9a238e13f906d99b",
+            measurementId: "G-NL3LT7CCMY"
+        };
         
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        
-        // Make db available globally
-        window.firestoreDb = db;
+        try {
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            
+            // Make db and Firestore functions available globally
+            window.firestoreDb = db;
+            window.firestoreFunctions = {
+                doc: doc,
+                setDoc: setDoc,
+                getDoc: getDoc,
+                serverTimestamp: serverTimestamp,
+                enableNetwork: enableNetwork,
+                disableNetwork: disableNetwork
+            };
+            
+            // Test Firestore connection
+            console.log('Firebase initialized successfully');
+            console.log('Firestore database:', db);
+            console.log('Project ID:', firebaseConfig.projectId);
+            
+            // Try to enable network and test connection
+            enableNetwork(db).then(() => {
+                console.log('Firestore network enabled');
+            }).catch(error => {
+                console.warn('Firestore network enable warning:', error);
+            });
+            
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            window.firestoreDb = null;
+            window.firestoreFunctions = null;
+        }
     </script>
     <script src="script.js"></script>
 </body>

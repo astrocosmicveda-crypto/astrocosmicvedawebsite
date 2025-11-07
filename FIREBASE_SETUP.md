@@ -22,15 +22,17 @@ This guide will help you set up Firebase Firestore to store user form submission
 ## Step 3: Set Up Security Rules
 
 1. Go to Firestore Database → Rules tab
-2. For development/testing, use these rules:
+2. For development/testing, use these rules (allows writes for storing submissions):
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /kundli_submissions/{document} {
-      // Allow read/write access to all (for testing only)
-      allow read, write: if true;
+      // Allow writes to store submissions (needed for the app to work)
+      // Allow reads only for duplicate checking (optional - can be false)
+      allow read: if true;
+      allow write: if true;
     }
   }
 }
@@ -43,13 +45,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /kundli_submissions/{document} {
-      // Only allow writes, no reads from client
+      // Allow writes to store submissions
+      // Disable reads from client (only allow from admin/backend)
       allow write: if true;
       allow read: if false; // Only allow reads from admin/backend
     }
   }
 }
 ```
+
+**Note:** The app needs `write` permission to store submissions. If you get "permission-denied" errors, make sure your rules allow writes.
 
 ## Step 4: Get Your Firebase Configuration
 
@@ -112,9 +117,45 @@ const firebaseConfig = {
 
 ## Troubleshooting
 
-- **"Firestore not initialized"**: Make sure you've added the Firebase config to `index.html`
-- **Permission denied**: Check your Firestore security rules
-- **No data appearing**: Check browser console for errors, ensure Firestore is enabled in Firebase Console
+### Common Errors:
+
+1. **"Firestore not initialized"**: 
+   - Make sure you've added the Firebase config to `index.html`
+   - Check browser console for initialization errors
+   - Ensure the Firebase SDK script loads before `script.js`
+
+2. **"Permission denied" (400 error)**:
+   - Go to Firestore Database → Rules tab
+   - Make sure rules allow `write: if true` for `kundli_submissions` collection
+   - Click "Publish" after updating rules
+   - Wait a few seconds for rules to propagate
+
+3. **"Failed to get document because the client is offline"**:
+   - This is normal if you're offline or have connection issues
+   - Firestore will automatically retry when connection is restored
+   - The app handles this gracefully and won't block the user experience
+
+4. **"Could not reach Cloud Firestore backend"**:
+   - Check your internet connection
+   - Verify Firestore is enabled in Firebase Console
+   - Check if your project has exceeded free tier limits
+   - Firestore will work in offline mode and sync when online
+
+5. **No data appearing in Firestore**:
+   - Check browser console for errors
+   - Verify Firestore is enabled in Firebase Console
+   - Check security rules allow writes
+   - Look for "Data stored successfully" message in console
+
+### Testing Connection:
+
+1. Open browser console (F12)
+2. Look for "Firebase initialized successfully" message
+3. Submit a form and check for storage messages
+4. If you see errors, check the error code:
+   - `permission-denied`: Update security rules
+   - `unavailable`: Network/connection issue (will retry automatically)
+   - `not-found`: Collection doesn't exist (will be created automatically)
 
 ## Free Tier Limits
 

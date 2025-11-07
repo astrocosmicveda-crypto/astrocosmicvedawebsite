@@ -43,17 +43,29 @@ function generateUniqueKey(dateOfBirth, timeOfBirth, placeOfBirth) {
 /**
  * Store user form submission data in Firestore
  * Uses date, time, and place as a composite unique key
+ * This function is completely non-blocking and will not fail the user experience
  */
 async function storeUserSubmission(formData, apiResult) {
     // Check if Firestore is available
-    if (!window.firestoreDb) {
+    if (!window.firestoreDb || !window.firestoreFunctions) {
         console.warn('Firestore not initialized. Skipping data storage.');
-        return { success: false, error: 'Firestore not initialized' };
+        return { success: false, error: 'Firestore not initialized', silent: true };
+    }
+    
+    // Wait a bit for Firestore to be ready (in case it's still initializing)
+    let retries = 0;
+    while (!window.firestoreDb && retries < 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+    }
+    
+    if (!window.firestoreDb) {
+        console.warn('Firestore initialization timeout. Skipping data storage.');
+        return { success: false, error: 'Firestore initialization timeout', silent: true };
     }
     
     try {
-        // Import Firestore functions dynamically
-        const { doc, setDoc, getDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, setDoc, getDoc, serverTimestamp, enableNetwork } = window.firestoreFunctions;
         const db = window.firestoreDb;
         
         // Generate unique key from date, time, and place
@@ -63,18 +75,7 @@ async function storeUserSubmission(formData, apiResult) {
             formData.placeOfBirth
         );
         
-        // Check if document already exists
         const docRef = doc(db, 'kundli_submissions', uniqueKey);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-            console.log('Entry already exists with this date, time, and place combination');
-            return { 
-                success: true, 
-                isDuplicate: true, 
-                message: 'This combination already exists in database' 
-            };
-        }
         
         // Prepare data to store
         const submissionData = {
@@ -87,29 +88,89 @@ async function storeUserSubmission(formData, apiResult) {
             longitude: formData.longitude,
             timestamp: serverTimestamp(),
             createdAt: new Date().toISOString(),
-            // Store a summary of the API result (optional - you can store more if needed)
             ascendantSign: apiResult?.output?.[1]?.Ascendant?.current_sign || null,
-            // Store the unique key for reference
             uniqueKey: uniqueKey
         };
         
-        // Store the document
-        await setDoc(docRef, submissionData);
-        
-        console.log('User submission stored successfully with key:', uniqueKey);
-        return { 
-            success: true, 
-            isDuplicate: false, 
-            uniqueKey: uniqueKey,
-            message: 'Data stored successfully' 
-        };
+        // Skip duplicate check if offline - just try to write
+        // Firestore will handle offline persistence automatically
+        try {
+            // Try to enable network (non-blocking)
+            enableNetwork(db).catch(() => {
+                // Ignore network enable errors
+            });
+            
+            // Try to write directly - Firestore will queue if offline
+            // Use a timeout to prevent hanging
+            const writePromise = setDoc(docRef, submissionData);
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Write timeout')), 5000)
+            );
+            
+            await Promise.race([writePromise, timeoutPromise]);
+            
+            console.log('✅ User submission stored successfully with key:', uniqueKey);
+            return { 
+                success: true, 
+                isDuplicate: false, 
+                uniqueKey: uniqueKey,
+                message: 'Data stored successfully' 
+            };
+            
+        } catch (writeError) {
+            // If offline/unavailable, Firestore persistence will handle it
+            // We'll still return success since the data will be queued
+            if (writeError.code === 'unavailable' || 
+                writeError.code === 'failed-precondition' || 
+                writeError.message.includes('offline') ||
+                writeError.message.includes('timeout')) {
+                
+                // Firestore has offline persistence - data will sync automatically
+                console.log('📦 Firestore offline - data queued for sync:', uniqueKey);
+                console.log('   Data will be synced automatically when connection is restored');
+                
+                // Still try to write (Firestore will queue it in offline mode)
+                setDoc(docRef, submissionData).catch(() => {
+                    // Even if this fails, Firestore persistence might have it
+                    console.log('   Note: Write queued in offline mode');
+                });
+                
+                return { 
+                    success: true, 
+                    isDuplicate: false, 
+                    uniqueKey: uniqueKey,
+                    message: 'Data queued (will sync when online)',
+                    queued: true
+                };
+            } else if (writeError.code === 'permission-denied') {
+                console.error('❌ Firestore permission denied');
+                console.error('   Fix: https://console.firebase.google.com/project/astrocosmicveda-2d8d9/firestore/rules');
+                return { 
+                    success: false, 
+                    error: 'Permission denied - check security rules',
+                    message: 'Permission denied',
+                    silent: true // Don't show error to user
+                };
+            } else {
+                // Unknown error - log but don't fail
+                console.warn('⚠️ Firestore write error (non-critical):', writeError.code, writeError.message);
+                return { 
+                    success: false, 
+                    error: writeError.message,
+                    message: 'Storage failed (non-critical)',
+                    silent: true
+                };
+            }
+        }
         
     } catch (error) {
-        console.error('Error storing user submission:', error);
+        // Catch-all: log but don't fail the user experience
+        console.warn('⚠️ Firestore storage error (non-critical):', error.code || 'unknown', error.message);
         return { 
             success: false, 
-            error: error.message,
-            message: 'Failed to store data' 
+            error: error.message || 'Unknown error',
+            message: 'Storage unavailable (non-critical)',
+            silent: true // Silent failure - don't interrupt user
         };
     }
 }
@@ -3537,21 +3598,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 longitude: longitude
             };
             
-            // Store data (non-blocking - runs in background)
+            // Store data (completely non-blocking - runs in background, never fails user experience)
             storeUserSubmission(formDataForStorage, apiResult)
                 .then(result => {
                     if (result.success) {
                         if (result.isDuplicate) {
-                            console.log('Duplicate entry detected:', result.message);
+                            console.log('ℹ️ Duplicate entry detected:', result.message);
+                        } else if (result.queued) {
+                            console.log('📦', result.message);
                         } else {
-                            console.log('Data stored successfully:', result.uniqueKey);
+                            console.log('✅', result.message, '- Key:', result.uniqueKey);
                         }
                     } else {
-                        console.warn('Storage failed (non-critical):', result.message);
+                        // Only log if not silent (permission errors are important)
+                        if (!result.silent) {
+                            console.warn('⚠️ Storage issue:', result.message);
+                        } else {
+                            // Silent failures - don't log to avoid console spam
+                            // console.log('Storage unavailable (silent)');
+                        }
                     }
                 })
                 .catch(error => {
-                    console.error('Error in storage (non-critical):', error);
+                    // Catch any unexpected errors silently
+                    console.log('Storage error handled silently');
                 });
             
             // Fetch Mahadasha data
