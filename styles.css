@@ -358,6 +358,9 @@ body {
     padding: 0;
     margin: 0;
     background: #fff;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
 }
 
 .article-view.active {
@@ -375,6 +378,9 @@ body:has(.article-view.active) #mainContainer {
 
 body:has(.article-view.active) {
     padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 body:has(.article-view.active) .container {
@@ -390,19 +396,23 @@ body:has(.article-view.active) .container {
     color: #201e1d;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 @media (max-width: 768px) {
     .article-content {
-        padding: 120px 16px 60px 16px;
+        padding: 120px 20px 80px 20px;
         padding-top: calc(120px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     }
 }
 
 @media (max-width: 480px) {
     .article-content {
-        padding: 110px 12px 40px 12px;
+        padding: 110px 16px 100px 16px;
         padding-top: calc(110px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
         line-height: 1.7;
     }
 }
@@ -523,6 +533,8 @@ body:has(.article-view.active) .container {
     padding: 30px;
     border-left: 4px solid #1a1a1a;
     margin: 40px 0;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -534,7 +546,7 @@ body:has(.article-view.active) .container {
 
 @media (max-width: 480px) {
     .birth-details-box {
-        padding: 16px;
+        padding: 16px 14px;
         margin: 24px 0;
         border-left-width: 3px;
     }
@@ -1083,6 +1095,8 @@ body:has(.article-view.active) .container {
     padding: 32px 30px 26px 30px;
     font-family: 'Charter', 'Georgia', serif;
     transition: box-shadow .16s;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -1101,7 +1115,7 @@ body:has(.article-view.active) .container {
 
 @media (max-width: 480px) {
     .ascendant-lord-section {
-        padding: 18px 10px 16px 10px;
+        padding: 18px 12px 16px 12px;
         margin-bottom: 24px;
         border-radius: 10px;
     }
@@ -1185,6 +1199,10 @@ body:has(.article-view.active) .container {
 .fundamental-note {
     border-left: 7px solid #d7b97b !important;
     background: #f9f6ed !important;
+    padding: 20px 18px !important;
+    margin: 20px 0 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
 }
 .fundamental-note p {
     font-size: 17.5px !important;
@@ -1202,6 +1220,9 @@ body:has(.article-view.active) .container {
 }
 
 @media (max-width: 480px) {
+    .fundamental-note {
+        padding: 16px 14px !important;
+    }
     .fundamental-note p {
         font-size: 14px !important;
         line-height: 1.45;
@@ -1216,6 +1237,8 @@ body:has(.article-view.active) .container {
     margin: 32px 0 40px 0;
     border-radius: 12px;
     font-family: 'Charter', 'Georgia', serif;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -1227,7 +1250,7 @@ body:has(.article-view.active) .container {
 
 @media (max-width: 480px) {
     .summary-section {
-        padding: 18px 12px 22px 12px;
+        padding: 18px 14px 22px 14px;
         margin: 24px 0 30px 0;
         border-radius: 10px;
     }
@@ -1350,8 +1373,8 @@ body:has(.article-view.active) .container {
 
 @media (max-width: 480px) {
     .planets-table-wrapper {
-        margin: 16px -12px;
-        padding: 0 12px;
+        margin: 16px 0;
+        padding: 0;
     }
     
     .planets-table {
