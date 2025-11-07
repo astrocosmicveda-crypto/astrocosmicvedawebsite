@@ -13,6 +13,107 @@ const API_CONFIG = {
     key: 'zZ89eRlc4n5lxXNXXQZBE8i3eq2EhNsK4OZQLT5v'
 };
 
+// =====================================================
+// FIREBASE FIRESTORE CONFIGURATION
+// =====================================================
+// To store user form submissions:
+// 1. Create a Firebase project at https://console.firebase.google.com
+// 2. Enable Firestore Database
+// 3. Set up Firestore security rules (see comments below)
+// 4. Get your Firebase config from Project Settings
+// 5. Update the firebaseConfig in index.html
+// =====================================================
+
+/**
+ * Generate a unique key from date, time, and place
+ * This key is used as the document ID in Firestore to ensure uniqueness
+ */
+function generateUniqueKey(dateOfBirth, timeOfBirth, placeOfBirth) {
+    // Normalize place name (lowercase, trim, remove extra spaces)
+    const normalizedPlace = placeOfBirth.toLowerCase().trim().replace(/\s+/g, '_');
+    
+    // Combine date, time, and place into a unique string
+    // Format: YYYY-MM-DD_HH-MM_place_name
+    const dateStr = dateOfBirth.replace(/-/g, '');
+    const timeStr = (timeOfBirth || '00:00').replace(/:/g, '-');
+    
+    return `${dateStr}_${timeStr}_${normalizedPlace}`;
+}
+
+/**
+ * Store user form submission data in Firestore
+ * Uses date, time, and place as a composite unique key
+ */
+async function storeUserSubmission(formData, apiResult) {
+    // Check if Firestore is available
+    if (!window.firestoreDb) {
+        console.warn('Firestore not initialized. Skipping data storage.');
+        return { success: false, error: 'Firestore not initialized' };
+    }
+    
+    try {
+        // Import Firestore functions dynamically
+        const { doc, setDoc, getDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const db = window.firestoreDb;
+        
+        // Generate unique key from date, time, and place
+        const uniqueKey = generateUniqueKey(
+            formData.dateOfBirth,
+            formData.timeOfBirth || '00:00',
+            formData.placeOfBirth
+        );
+        
+        // Check if document already exists
+        const docRef = doc(db, 'kundli_submissions', uniqueKey);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            console.log('Entry already exists with this date, time, and place combination');
+            return { 
+                success: true, 
+                isDuplicate: true, 
+                message: 'This combination already exists in database' 
+            };
+        }
+        
+        // Prepare data to store
+        const submissionData = {
+            fullName: formData.fullName,
+            dateOfBirth: formData.dateOfBirth,
+            timeOfBirth: formData.timeOfBirth || '00:00',
+            placeOfBirth: formData.placeOfBirth,
+            language: formData.language,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
+            timestamp: serverTimestamp(),
+            createdAt: new Date().toISOString(),
+            // Store a summary of the API result (optional - you can store more if needed)
+            ascendantSign: apiResult?.output?.[1]?.Ascendant?.current_sign || null,
+            // Store the unique key for reference
+            uniqueKey: uniqueKey
+        };
+        
+        // Store the document
+        await setDoc(docRef, submissionData);
+        
+        console.log('User submission stored successfully with key:', uniqueKey);
+        return { 
+            success: true, 
+            isDuplicate: false, 
+            uniqueKey: uniqueKey,
+            message: 'Data stored successfully' 
+        };
+        
+    } catch (error) {
+        console.error('Error storing user submission:', error);
+        return { 
+            success: false, 
+            error: error.message,
+            message: 'Failed to store data' 
+        };
+    }
+}
+
 // Zodiac Sign to Lord Mapping
 const ZODIAC_LORDS = {
     1: 'Mars',      // Aries (Mesha)
@@ -3421,6 +3522,38 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Full API Response:', apiResult);
             console.log('Response keys:', Object.keys(apiResult));
             
+            // Store user submission data in Firestore
+            // This happens asynchronously and won't block the UI
+            const fullName = document.getElementById('fullName').value;
+            const language = document.getElementById('language').value || 'en';
+            
+            const formDataForStorage = {
+                fullName: fullName,
+                dateOfBirth: dateOfBirth,
+                timeOfBirth: timeOfBirth || '00:00',
+                placeOfBirth: placeOfBirth,
+                language: language,
+                latitude: latitude,
+                longitude: longitude
+            };
+            
+            // Store data (non-blocking - runs in background)
+            storeUserSubmission(formDataForStorage, apiResult)
+                .then(result => {
+                    if (result.success) {
+                        if (result.isDuplicate) {
+                            console.log('Duplicate entry detected:', result.message);
+                        } else {
+                            console.log('Data stored successfully:', result.uniqueKey);
+                        }
+                    } else {
+                        console.warn('Storage failed (non-critical):', result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error in storage (non-critical):', error);
+                });
+            
             // Fetch Mahadasha data
             let currentDasha = null;
             try {
@@ -3495,10 +3628,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Hide loading and show article view
             loadingMessage.classList.add('hidden');
-            
-            // Get form values for display
-            const fullName = document.getElementById('fullName').value;
-            const language = document.getElementById('language').value || 'en';
             
             // Generate article HTML
             const birthDate = new Date(dateOfBirth);
