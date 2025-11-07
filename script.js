@@ -2620,10 +2620,17 @@ function generatePlanetsHouseEffectsHTML(apiResult, language = 'en', currentDash
             badgeHTML = `<span class="dasha-badge">⭐ ${badgeText}</span>`;
         }
         
+        // For headings, always use English text, but translate planet names
+        const headingTextsPlanet = {
+            inHouse: "in the",
+            house: "House"
+        };
+        const ordinalHousePlanet = getOrdinal(houseNum, 'en'); // Always English ordinal
+        
 htmlOutput += `
     <div class="ascendant-lord-section ${highlightClass}" style="margin-top: 60px;">
     <h2>
-      ${planetName} ${texts.inHouse} ${getOrdinal(houseNum, language)} ${texts.house} ${badgeHTML}
+      ${planetName} ${headingTextsPlanet.inHouse} ${ordinalHousePlanet} ${headingTextsPlanet.house} ${badgeHTML}
     </h2>
     <div style="margin-top: 10px;">
       <h3 style="color: #75623e; font-weight: 600;">${texts.classicalEffects}</h3>
@@ -3048,9 +3055,18 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
                     }
                 }
                 
+                // For headings, always use English text, but translate planet names
+                const headingTexts = {
+                    houseLord: "House Lord",
+                    inHouse: "in",
+                    house: "House"
+                };
+                const ordinalLord = getOrdinal(lordObj.houseLordNum, 'en'); // Always English ordinal
+                const ordinalHouse = getOrdinal(lordObj.house, 'en'); // Always English ordinal
+                
                 houseLordsHTML += `
                 <div class="ascendant-lord-section ${highlightClass}" style="margin-top: 60px;">
-<h2>${getOrdinal(lordObj.houseLordNum, language)} ${texts.houseLord} (${translatedPlanetName}) ${texts.inHouse} ${getOrdinal(lordObj.house, language)} ${texts.house} ${highlightNote}</h2>
+<h2>${ordinalLord} ${headingTexts.houseLord} (${translatedPlanetName}) ${headingTexts.inHouse} ${ordinalHouse} ${headingTexts.house} ${highlightNote}</h2>
                     <div style="background: #f9f9f9; padding: 25px; border-left: 4px solid #1a1a1a; margin-bottom: 30px;">
                         <p><strong>${texts.lordIsIn} </strong> ${lordObj.signName}</p>
                     </div>
