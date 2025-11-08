@@ -1430,10 +1430,114 @@ body:has(.article-view.active) .container {
 }
 
 @media (max-width: 480px) {
-    .article-footer {
-        margin-top: 40px;
-        font-size: 12px;
-        padding: 20px 0 6px 0;
+.article-footer {
+    margin-top: 40px;
+    font-size: 12px;
+    padding: 20px 0 6px 0;
+    }
+}
+
+.yoga-section {
+    margin: 60px 0;
+    padding: 36px 28px;
+    border-radius: 16px;
+    border: 1.2px solid #e8e2d3;
+    background: linear-gradient(135deg, #faf7f1 0%, #fefefa 100%);
+    box-shadow: 0 8px 24px rgba(34, 32, 25, 0.08);
+}
+
+.yoga-section h2 {
+    font-family: 'Charter', 'Georgia', serif;
+    font-size: 28px;
+    margin-bottom: 24px;
+    color: #2b2520;
+    letter-spacing: -0.25px;
+    text-align: center;
+}
+
+.yoga-section__subtitle {
+    margin-top: 40px;
+}
+
+.yoga-category {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 22px;
+    margin-bottom: 30px;
+}
+
+.yoga-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e5dccb;
+    padding: 22px 20px;
+    box-shadow: 0 10px 24px rgba(120, 96, 60, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.yoga-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 28px rgba(120, 96, 60, 0.12);
+}
+
+.yoga-card h3 {
+    font-size: 20px;
+    margin-bottom: 12px;
+    color: #2d2a26;
+    letter-spacing: -0.1px;
+}
+
+.yoga-card p {
+    font-size: 15px;
+    line-height: 1.65;
+    color: #443f39;
+    margin-bottom: 8px;
+}
+
+.yoga-card--challenging {
+    border: 1px solid #f0d9d5;
+    background: #fff8f6;
+    box-shadow: 0 10px 24px rgba(165, 66, 54, 0.08);
+}
+
+.yoga-card--challenging h3 {
+    color: #7a2b24;
+}
+
+.yoga-card--challenging p {
+    color: #5a3834;
+}
+
+@media (max-width: 768px) {
+    .yoga-section {
+        padding: 28px 18px;
+        margin: 40px 0;
+    }
+
+    .yoga-section h2 {
+        font-size: 24px;
+    }
+
+    .yoga-card {
+        padding: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .yoga-section {
+        padding: 24px 14px;
+    }
+
+    .yoga-section h2 {
+        font-size: 22px;
+    }
+
+    .yoga-card h3 {
+        font-size: 18px;
+    }
+
+    .yoga-card p {
+        font-size: 14px;
     }
 }
 

@@ -175,6 +175,47 @@ async function storeUserSubmission(formData, apiResult) {
     }
 }
 
+function generateYogaSection(yogaResults, language = 'en') {
+    if (!yogaResults || (!yogaResults.good.length && !yogaResults.bad.length)) {
+        return '';
+    }
+
+    const headings = language === 'hi'
+        ? {
+            goodTitle: 'शुभ योग (Good Yogas)',
+            badTitle: 'अशुभ योग (Bad Yogas)'
+        }
+        : {
+            goodTitle: 'Good Yogas (Auspicious)',
+            badTitle: 'Bad Yogas (Inauspicious)'
+        };
+
+    const renderCards = (items, challenging = false) => items.map(yoga => `
+            <div class="yoga-card${challenging ? ' yoga-card--challenging' : ''}">
+                <h3>${yoga.name}</h3>
+                <p><strong>Rule:</strong> ${yoga.rule}</p>
+                <p><strong>Example:</strong> ${yoga.example}</p>
+                <p><strong>Explanation:</strong> ${yoga.explanation}</p>
+                ${yoga.extra ? `<p><strong>${yoga.dynamicLabel || 'In your birth chart'}:</strong> ${yoga.extra}</p>` : ''}
+            </div>
+    `).join('');
+
+    const goodSection = yogaResults.good.length
+        ? `<h2>${headings.goodTitle}</h2><div class="yoga-category">${renderCards(yogaResults.good)}</div>`
+        : '';
+
+    const badSection = yogaResults.bad.length
+        ? `<h2 class="yoga-section__subtitle">${headings.badTitle}</h2><div class="yoga-category">${renderCards(yogaResults.bad, true)}</div>`
+        : '';
+
+    return `
+    <section class="yoga-section">
+        ${goodSection}
+        ${badSection}
+    </section>
+    `;
+}
+
 // Zodiac Sign to Lord Mapping
 const ZODIAC_LORDS = {
     1: 'Mars',      // Aries (Mesha)
@@ -218,6 +259,516 @@ const PLANET_NAMES = {
         'Ascendant': 'लग्न'
     }
 };
+
+const SIGN_NAMES = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+const KENDRA_HOUSES = [1, 4, 7, 10];
+const TRIKONA_HOUSES = [1, 5, 9];
+const DUSTHANA_HOUSES = [6, 8, 12];
+const PLANET_LIST = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
+const MALIFIC_PLANETS = ['Saturn', 'Mars', 'Rahu', 'Ketu'];
+const BENEFIC_PLANETS = ['Jupiter', 'Venus', 'Mercury'];
+
+const PLANET_DIGNITIES = {
+    Sun: { own: [5], exalted: 1, debilitated: 7 },
+    Moon: { own: [4], exalted: 2, debilitated: 8 },
+    Mars: { own: [1, 8], exalted: 10, debilitated: 4 },
+    Mercury: { own: [3, 6], exalted: 6, debilitated: 12 },
+    Jupiter: { own: [9, 12], exalted: 4, debilitated: 10 },
+    Venus: { own: [2, 7], exalted: 12, debilitated: 6 },
+    Saturn: { own: [10, 11], exalted: 7, debilitated: 1 }
+};
+
+const GOOD_YOGA_DEFINITIONS = {
+    raj: {
+        name: 'Raj Yoga',
+        rule: 'Lords of Kendra (1, 4, 7, 10) and Trikona (1, 5, 9) houses conjoin, mutually aspect, or exchange.',
+        example: 'Lord of 1st house in 10th house and vice versa.',
+        explanation: 'The ruler of the ascendant links directly with the 10th house of career while the 10th lord returns to the ascendant. This circuit generates natural authority, leadership, and public recognition.',
+        dynamicLabel: 'In your birth chart'
+    },
+    parivartana: {
+        name: 'Parivartana Yoga (Mutual Exchange Yoga)',
+        rule: 'Two house lords occupy each other’s houses, forming a mutual exchange.',
+        example: '2nd lord in 5th house and 5th lord in 2nd house.',
+        explanation: 'Mutual exchange fuses the meanings of the involved houses. Wealth, family values, intellect, and creativity strengthen one another, often producing resourceful expression.',
+        dynamicLabel: 'In your birth chart'
+    },
+    panch: {
+        name: 'Panch Mahapurush Yogas',
+        rule: 'Mars, Mercury, Jupiter, Venus, or Saturn in its own or exalted sign in a Kendra (1, 4, 7, 10).',
+        example: 'Mars in own sign in a Kendra (1st, 4th, 7th, 10th) forms Ruchaka Yoga.',
+        explanation: 'Each planet creates a distinct Mahapurush yoga when dignified in a central house, gifting extraordinary courage, intellect, wisdom, artistry, or discipline commonly seen in high achievers.',
+        dynamicLabel: 'In your birth chart'
+    },
+    gaja: {
+        name: 'Gaja Kesari Yoga',
+        rule: 'Jupiter positioned in a Kendra (1, 4, 7, 10) from the Moon.',
+        example: 'Jupiter in Kendra (1, 4, 7, 10) from Moon.',
+        explanation: 'Jupiter supporting the Moon from a strong angle steadies emotions and judgment, bestowing prosperity, respect, and sound counsel.',
+        dynamicLabel: 'In your birth chart'
+    },
+    neecha: {
+        name: 'Neecha Bhang Raj Yoga',
+        rule: 'A debilitated planet regains strength via cancellation factors or strong placement.',
+        example: 'Debilitated planet effect canceled by benefic influences.',
+        explanation: 'When a weakened planet gains dignity—especially through Kendra placement—it transforms early setbacks into significant later success.',
+        dynamicLabel: 'In your birth chart'
+    },
+    vipreet: {
+        name: 'Vipreet Raj Yoga',
+        rule: 'Lords of Dusthana houses (6th, 8th, 12th) exchange places or reside in one another’s houses.',
+        example: 'Lord of 6th house in 8th or 12th house.',
+        explanation: 'Difficult house lords neutralise one another, allowing the native to harvest unexpected benefits through adversity and transformation.',
+        dynamicLabel: 'In your birth chart'
+    },
+    dhana: {
+        name: 'Dhana Yoga',
+        rule: 'Benefic planets activate the 2nd or 11th house, or their lords.',
+        example: 'Venus with Jupiter in 11th house.',
+        explanation: 'Benefics energising the house of gains attract supportive networks, steady income, and sustained prosperity.',
+        dynamicLabel: 'In your birth chart'
+    },
+    hamsa: {
+        name: 'Hamsa Yoga',
+        rule: 'Jupiter in own sign (Sagittarius, Pisces) or exalted (Cancer) and occupying a Kendra (1, 4, 7, 10).',
+        example: 'Jupiter in Cancer placed in the 4th house.',
+        explanation: 'A dignified Jupiter in a central house grants wisdom, humility, spirituality, and enduring reputation.',
+        dynamicLabel: 'In your birth chart'
+    },
+    malavya: {
+        name: 'Malavya Yoga',
+        rule: 'Venus in own sign (Taurus, Libra) or exalted (Pisces) positioned in a Kendra.',
+        example: 'Venus in Taurus occupying the 7th house.',
+        explanation: 'Malavya blesses grace, charisma, luxury, artistic talents, and enduring relationships.',
+        dynamicLabel: 'In your birth chart'
+    },
+    bhadra: {
+        name: 'Bhadra Yoga',
+        rule: 'Mercury in own sign (Gemini, Virgo) seated in a Kendra.',
+        example: 'Mercury in Virgo placed in the 10th house.',
+        explanation: 'Bhadra confers intelligence, eloquence, longevity, and a refined sense of service and travel.',
+        dynamicLabel: 'In your birth chart'
+    },
+    ruchaka: {
+        name: 'Ruchaka Yoga',
+        rule: 'Mars in own sign (Aries, Scorpio) or exalted (Capricorn) occupying a Kendra.',
+        example: 'Mars in Capricorn positioned in the 10th house.',
+        explanation: 'Ruchaka produces courage, leadership, strategic prowess, and physical as well as mental strength.',
+        dynamicLabel: 'In your birth chart'
+    },
+    sasa: {
+        name: 'Sasa Yoga',
+        rule: 'Saturn in own sign (Capricorn, Aquarius) or exalted (Libra) located in a Kendra.',
+        example: 'Saturn in Aquarius placed in the 1st house.',
+        explanation: 'Sasa Yoga elevates status, discipline, organisational skills, and the capacity to wield lasting influence.',
+        dynamicLabel: 'In your birth chart'
+    },
+    budhAditya: {
+        name: 'Budh Aditya Yoga',
+        rule: 'Sun and Mercury conjoin in any house.',
+        example: 'Sun and Mercury together in the 5th house.',
+        explanation: 'This bright conjunction sharpens intellect, communication, memory, and decision-making ability.',
+        dynamicLabel: 'In your birth chart'
+    },
+    chandraMangal: {
+        name: 'Chandra Mangal Yoga',
+        rule: 'Moon and Mars conjoin (or strongly aspect) each other.',
+        example: 'Moon and Mars occupying the same house.',
+        explanation: 'When benefic, this yoga generates financial acumen, enterprise, and decisive emotional drive.',
+        dynamicLabel: 'In your birth chart'
+    },
+    guruMangal: {
+        name: 'Guru Mangal Yoga',
+        rule: 'Jupiter and Mars conjoin or occupy mutually 1st/7th houses.',
+        example: 'Jupiter and Mars together in the 1st house.',
+        explanation: 'The blend of Jupiter’s wisdom and Mars’ initiative supports prosperity, optimism, and principled activism.',
+        dynamicLabel: 'In your birth chart'
+    },
+    amala: {
+        name: 'Amala Yoga',
+        rule: 'Benefic planet (Jupiter, Mercury, Venus) in the 10th house from the ascendant.',
+        example: 'Venus positioned in the 10th house.',
+        explanation: 'Amala Yoga enhances career reputation, charitable instincts, and compassionate leadership.',
+        dynamicLabel: 'In your birth chart'
+    },
+    kahala: {
+        name: 'Kahala Yoga',
+        rule: 'Strong link between 4th and 9th house lords, especially when placed in Kendras.',
+        example: '4th lord in the 10th house and 9th lord in the 1st.',
+        explanation: 'Kahala grants courage, stability, luck, and sustained happiness when foundational houses cooperate.',
+        dynamicLabel: 'In your birth chart'
+    },
+    lakshmi: {
+        name: 'Lakshmi Yoga',
+        rule: 'A strong 9th house lord (in own/exalted sign) aligns with a benefic ascendant lord, avoiding Dusthana houses.',
+        example: '9th lord exalted and aspecting the ascendant lord.',
+        explanation: 'Lakshmi Yoga ushers material abundance, versatility, and skill when fortune and self align beneficially.',
+        dynamicLabel: 'In your birth chart'
+    },
+    mahabhagya: {
+        name: 'MahaBhagya Yoga',
+        rule: 'Ascendant, Sun, and Moon all occupy either odd (for males) or even (for females) signs.',
+        example: 'Ascendant, Sun, Moon each in odd-numbered signs.',
+        explanation: 'When birth parity aligns perfectly, it bestows exceptional fortune, charisma, and societal recognition.',
+        dynamicLabel: 'In your birth chart'
+    },
+    akhandaSamrajya: {
+        name: 'Akhanda Samrajya Yoga',
+        rule: 'Second, ninth, and eleventh lords strongly placed with support from Jupiter and Moon.',
+        example: 'Moon in a Kendra while 2nd, 9th, and 11th lords occupy strong houses.',
+        explanation: 'This regal combination indicates broad influence, leadership aptitude, and the ability to guide communities.',
+        dynamicLabel: 'In your birth chart'
+    }
+};
+
+const BAD_YOGA_DEFINITIONS = {
+    kemadruma: {
+        name: 'Kemadruma Yoga',
+        rule: 'Moon has no planets in adjacent houses (2nd or 12th).',
+        example: 'Moon with no planets on either side.',
+        explanation: 'An unsupported Moon amplifies feelings of isolation and financial instability, urging the native to cultivate emotional and material support systems.',
+        dynamicLabel: 'In your birth chart'
+    },
+    daridra: {
+        name: 'Daridra Yoga',
+        rule: '11th lord is afflicted and placed in a Dusthana house (6th, 8th, or 12th).',
+        example: '11th lord afflicted in 6th, 8th, or 12th house.',
+        explanation: 'When the lord of gains struggles in difficult houses, income becomes erratic and financial planning is crucial to counter losses.',
+        dynamicLabel: 'In your birth chart'
+    },
+    grahan: {
+        name: 'Grahan Yoga',
+        rule: 'Sun or Moon is conjunct/aspected by Rahu or Ketu.',
+        example: 'Sun or Moon conjunct Rahu/Ketu.',
+        explanation: 'Shadowy nodes eclipse the luminaries, producing emotional turbulence, reputation swings, and a need for mental clarity practices.',
+        dynamicLabel: 'In your birth chart'
+    },
+    shrapit: {
+        name: 'Shrapit Yoga',
+        rule: 'Saturn combines with Rahu (conjunction or strong aspect).',
+        example: 'Saturn conjunct Rahu.',
+        explanation: 'This pairing highlights karmic debts, delays, or ancestral responsibilities that demand patient, disciplined effort.',
+        dynamicLabel: 'In your birth chart'
+    },
+    angarak: {
+        name: 'Angarak Yoga',
+        rule: 'Mars conjoins Rahu.',
+        example: 'Mars conjunct Rahu causes aggression and conflicts.',
+        explanation: 'Intense Martian fire merges with Rahu’s volatility, generating impulsive actions or confrontational situations.',
+        dynamicLabel: 'In your birth chart'
+    },
+    kuja: {
+        name: 'Kuja Dosha',
+        rule: 'Mars occupies 1st, 4th, 7th, 8th, or 12th from Lagna or Moon.',
+        example: 'Mars in 1st, 4th, 7th, 8th, or 12th house leads to relationship problems.',
+        explanation: 'Mars in marital houses can create agitation, so conscious communication and compatibility checks become essential.',
+        dynamicLabel: 'In your birth chart'
+    },
+    bhanga: {
+        name: 'Bhanga Yoga',
+        rule: 'Benefic yogas get weakened by malefic influence.',
+        example: 'Good yogas negated by malefics or afflictions.',
+        explanation: 'When malefics disturb auspicious combinations, promised benefits may not fully manifest unless remedial efforts are made.',
+        dynamicLabel: 'In your birth chart'
+    }
+};
+
+function computeYogas(planetsData, ascendantSign) {
+    const results = { good: [], bad: [] };
+    if (!planetsData || !ascendantSign) {
+        return results;
+    }
+
+    const addedKeys = { good: new Set(), bad: new Set() };
+
+    const addYoga = (category, key, extra) => {
+        const definitions = category === 'good' ? GOOD_YOGA_DEFINITIONS : BAD_YOGA_DEFINITIONS;
+        if (!definitions[key] || addedKeys[category].has(key)) return;
+        const yogaInfo = { ...definitions[key] };
+        if (extra) {
+            yogaInfo.extra = extra;
+        }
+        yogaInfo.key = key;
+        results[category].push(yogaInfo);
+        addedKeys[category].add(key);
+    };
+
+    const getHouse = (planet) => {
+        const entry = planetsData[planet];
+        if (!entry || entry.house_number === undefined || entry.house_number === null) return null;
+        return parseInt(entry.house_number, 10);
+    };
+
+    const getSign = (planet) => {
+        const entry = planetsData[planet];
+        if (!entry || entry.current_sign === undefined || entry.current_sign === null) return null;
+        return parseInt(entry.current_sign, 10);
+    };
+
+    const getHouseSign = (houseNum) => {
+        let sign = (ascendantSign + houseNum - 2) % 12;
+        if (sign < 0) sign += 12;
+        return sign + 1;
+    };
+
+    const getSignName = (signNum) => {
+        if (!signNum) return '';
+        return SIGN_NAMES[((signNum - 1) % 12 + 12) % 12];
+    };
+
+    // Raj Yoga (1st and 10th lords exchanging houses)
+    const firstLord = ZODIAC_LORDS[ascendantSign];
+    const tenthSign = getHouseSign(10);
+    const tenthLord = ZODIAC_LORDS[tenthSign];
+    const firstLordHouse = getHouse(firstLord);
+    const tenthLordHouse = getHouse(tenthLord);
+    if (firstLord && tenthLord && firstLordHouse === 10 && tenthLordHouse === 1) {
+        addYoga('good', 'raj', `${firstLord} resides in the 10th house and ${tenthLord} returns to the 1st, tightly linking self and career.`);
+    }
+
+    // Parivartana Yoga (2nd <-> 5th)
+    const secondLordParivartana = ZODIAC_LORDS[getHouseSign(2)];
+    const fifthLord = ZODIAC_LORDS[getHouseSign(5)];
+    if (secondLordParivartana && fifthLord && getHouse(secondLordParivartana) === 5 && getHouse(fifthLord) === 2) {
+        addYoga('good', 'parivartana', `${secondLordParivartana} occupies the 5th while ${fifthLord} sits in the 2nd, forming a strong mutual exchange.`);
+    }
+
+    // Panch Mahapurush Yogas
+    const panchDetails = [];
+    ['Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'].forEach(planet => {
+        const sign = getSign(planet);
+        const house = getHouse(planet);
+        if (!sign || !house) return;
+        const dignities = PLANET_DIGNITIES[planet];
+        const inOwn = dignities.own.includes(sign);
+        const inExaltation = dignities.exalted === sign;
+        if (KENDRA_HOUSES.includes(house) && (inOwn || inExaltation)) {
+            panchDetails.push(`${planet} in the ${house}th house (${getSignName(sign)})`);
+        }
+    });
+    if (panchDetails.length) {
+        addYoga('good', 'panch', panchDetails.join('; '));
+    }
+
+    // Individual Mahapurush yogas
+    const jupiterSign = getSign('Jupiter');
+    const jupiterHouse = getHouse('Jupiter');
+    const moonHouse = getHouse('Moon');
+    if (jupiterSign && jupiterHouse && KENDRA_HOUSES.includes(jupiterHouse) && [9, 12, 4].includes(jupiterSign)) {
+        addYoga('good', 'hamsa', `Jupiter resides in the ${jupiterHouse}th house within ${getSignName(jupiterSign)}.`);
+    }
+
+    const venusSign = getSign('Venus');
+    const venusHouse = getHouse('Venus');
+    if (venusSign && venusHouse && KENDRA_HOUSES.includes(venusHouse) && [2, 7, 12].includes(venusSign)) {
+        addYoga('good', 'malavya', `Venus occupies the ${venusHouse}th house in ${getSignName(venusSign)}.`);
+    }
+
+    const mercurySign = getSign('Mercury');
+    const mercuryHouse = getHouse('Mercury');
+    if (mercurySign && mercuryHouse && KENDRA_HOUSES.includes(mercuryHouse) && [3, 6].includes(mercurySign)) {
+        addYoga('good', 'bhadra', `Mercury is seated in the ${mercuryHouse}th house within ${getSignName(mercurySign)}.`);
+    }
+
+    const marsSign = getSign('Mars');
+    const marsHouse = getHouse('Mars');
+    if (marsSign && marsHouse && KENDRA_HOUSES.includes(marsHouse) && [1, 8, 10].includes(marsSign)) {
+        addYoga('good', 'ruchaka', `Mars holds the ${marsHouse}th house in ${getSignName(marsSign)}.`);
+    }
+
+    const saturnSign = getSign('Saturn');
+    const saturnHouse = getHouse('Saturn');
+    if (saturnSign && saturnHouse && KENDRA_HOUSES.includes(saturnHouse) && [10, 11, 7].includes(saturnSign)) {
+        addYoga('good', 'sasa', `Saturn anchors the ${saturnHouse}th house in ${getSignName(saturnSign)}.`);
+    }
+
+    // Gaja Kesari Yoga
+    const moonSign = getSign('Moon');
+    if (moonSign && jupiterSign) {
+        const relativeHouse = getRelativeHouseNumber(moonSign, jupiterSign);
+        if (KENDRA_HOUSES.includes(relativeHouse)) {
+            addYoga('good', 'gaja', `Moon is in house ${getHouse('Moon')} while Jupiter stands ${relativeHouse}th from the Moon in ${getSignName(jupiterSign)}.`);
+        }
+    }
+
+    // Neecha Bhang Raj Yoga (debilitated planet in Kendra)
+    const neechaDetails = [];
+    Object.keys(PLANET_DIGNITIES).forEach(planet => {
+        const sign = getSign(planet);
+        const house = getHouse(planet);
+        const dignity = PLANET_DIGNITIES[planet];
+        if (sign && house && dignity.debilitated === sign && KENDRA_HOUSES.includes(house)) {
+            neechaDetails.push(`${planet} debilitated in ${getSignName(sign)} but strengthened in a Kendra (house ${house}).`);
+        }
+    });
+    if (neechaDetails.length) {
+        addYoga('good', 'neecha', neechaDetails.join(' '));
+    }
+
+    // Vipreet Raj Yoga (dusthana lords in dusthana houses)
+    const vipreetDetails = [];
+    DUSTHANA_HOUSES.forEach(houseNumber => {
+        const sign = getHouseSign(houseNumber);
+        const lord = ZODIAC_LORDS[sign];
+        const lordHouse = getHouse(lord);
+        if (lord && lordHouse && DUSTHANA_HOUSES.includes(lordHouse)) {
+            vipreetDetails.push(`${lord} (lord of the ${houseNumber}th) sits in the ${lordHouse}th house.`);
+        }
+    });
+    if (vipreetDetails.length) {
+        addYoga('good', 'vipreet', vipreetDetails.join(' '));
+    }
+
+    // Dhana Yoga (Venus & Jupiter in 11th)
+    if (getHouse('Venus') === 11 && getHouse('Jupiter') === 11) {
+        addYoga('good', 'dhana', `Venus and Jupiter join forces in the 11th house of gains.`);
+    }
+
+    // Budh Aditya Yoga
+    const sunHouse = getHouse('Sun');
+    if (sunHouse && sunHouse === mercuryHouse) {
+        addYoga('good', 'budhAditya', `Sun and Mercury unite in house ${sunHouse}.`);
+    }
+
+    // Chandra Mangal Yoga
+    if (moonHouse && marsHouse && moonHouse === marsHouse) {
+        addYoga('good', 'chandraMangal', `Moon and Mars together energise the ${moonHouse}th house.`);
+    }
+
+    // Guru Mangal Yoga
+    if (marsHouse && jupiterHouse) {
+        const diff = Math.abs(marsHouse - jupiterHouse);
+        const wrapDiff = 12 - diff;
+        if (diff === 0 || diff === 6 || wrapDiff === 6) {
+            addYoga('good', 'guruMangal', `Mars and Jupiter align across houses ${marsHouse} and ${jupiterHouse}.`);
+        }
+    }
+
+    // Amala Yoga
+    if (ascendantSign) {
+        BENEFIC_PLANETS.forEach(planet => {
+            const house = getHouse(planet);
+            if (house === 10) {
+                addYoga('good', 'amala', `${planet} illuminates the 10th house, fortifying career reputation.`);
+            }
+        });
+    }
+
+    // Kahala Yoga
+    const fourthLord = ZODIAC_LORDS[getHouseSign(4)];
+    const ninthLord = ZODIAC_LORDS[getHouseSign(9)];
+    const fourthLordHouse = getHouse(fourthLord);
+    const ninthLordHouse = getHouse(ninthLord);
+    if (fourthLord && ninthLord && fourthLordHouse && ninthLordHouse &&
+        KENDRA_HOUSES.includes(fourthLordHouse) && KENDRA_HOUSES.includes(ninthLordHouse)) {
+        addYoga('good', 'kahala', `${fourthLord} and ${ninthLord} both anchor Kendra houses (${fourthLordHouse} & ${ninthLordHouse}).`);
+    }
+
+    // Lakshmi Yoga
+    if (ascendantSign && ninthLord) {
+        const ninthLordSign = getSign(ninthLord);
+        const ascLord = ZODIAC_LORDS[ascendantSign];
+        const ascLordHouse = getHouse(ascLord);
+        const ninthDignity = PLANET_DIGNITIES[ninthLord];
+        const isStrongNinth = ninthLordSign && ninthDignity && (ninthDignity.own.includes(ninthLordSign) || ninthDignity.exalted === ninthLordSign);
+        const ascLordSafe = ascLordHouse && !DUSTHANA_HOUSES.includes(ascLordHouse);
+        if (isStrongNinth && ascLordSafe) {
+            addYoga('good', 'lakshmi', `${ninthLord} holds dignity in ${getSignName(ninthLordSign)} while ${ascLord} avoids Dusthana houses.`);
+        }
+    }
+
+    // MahaBhagya Yoga (parity check)
+    if (ascendantSign && sunHouse && moonHouse) {
+        const ascParity = ascendantSign % 2;
+        const sunSign = getSign('Sun');
+        const moonSignForParity = moonSign;
+        if (sunSign && moonSignForParity) {
+            const sunParity = sunSign % 2;
+            const moonParity = moonSignForParity % 2;
+            if (ascParity === sunParity && sunParity === moonParity) {
+                const parityLabel = ascParity === 1 ? 'odd signs' : 'even signs';
+                addYoga('good', 'mahabhagya', `Ascendant, Sun, and Moon all occupy ${parityLabel}, indicating exceptional fortune.`);
+            }
+        }
+    }
+
+    // Akhanda Samrajya Yoga (heuristic)
+    const secondLordSamrajya = ZODIAC_LORDS[getHouseSign(2)];
+    const eleventhLordSamrajya = ZODIAC_LORDS[getHouseSign(11)];
+    const moonInKendra = moonHouse && KENDRA_HOUSES.includes(moonHouse);
+    const supportiveLords = [secondLordSamrajya, ninthLord, eleventhLordSamrajya].every(lord => {
+        const house = getHouse(lord);
+        return lord && house && (KENDRA_HOUSES.includes(house) || TRIKONA_HOUSES.includes(house));
+    });
+    if (moonInKendra && supportiveLords) {
+        addYoga('good', 'akhandaSamrajya', `Moon anchors a Kendra while 2nd, 9th, and 11th lords (${[secondLordSamrajya, ninthLord, eleventhLordSamrajya].join(', ')}) occupy strong houses.`);
+    }
+
+    // Kemadruma Yoga
+    if (moonHouse) {
+        const leftHouse = moonHouse === 1 ? 12 : moonHouse - 1;
+        const rightHouse = moonHouse === 12 ? 1 : moonHouse + 1;
+        const hasSupport = PLANET_LIST.some(planet => {
+            if (planet === 'Moon') return false;
+            const house = getHouse(planet);
+            return house === leftHouse || house === rightHouse;
+        });
+        if (!hasSupport) {
+            addYoga('bad', 'kemadruma', `Moon stands alone in house ${moonHouse} with vacant neighbours (${leftHouse} & ${rightHouse}).`);
+        }
+    }
+
+    // Daridra Yoga
+    const eleventhLordDaridra = ZODIAC_LORDS[getHouseSign(11)];
+    const eleventhLordHouse = getHouse(eleventhLordDaridra);
+    if (eleventhLordDaridra && eleventhLordHouse && DUSTHANA_HOUSES.includes(eleventhLordHouse)) {
+        addYoga('bad', 'daridra', `${eleventhLordDaridra} (lord of gains) resides in the ${eleventhLordHouse}th house, stressing finances.`);
+    }
+
+    // Grahan Yoga
+    const rahuHouse = getHouse('Rahu');
+    const ketuHouse = getHouse('Ketu');
+    const grahanDetails = [];
+    if (sunHouse && (sunHouse === rahuHouse || sunHouse === ketuHouse)) {
+        grahanDetails.push(`Sun shares the ${sunHouse}th house with ${sunHouse === rahuHouse ? 'Rahu' : 'Ketu'}.`);
+    }
+    if (moonHouse && (moonHouse === rahuHouse || moonHouse === ketuHouse)) {
+        grahanDetails.push(`Moon shares the ${moonHouse}th house with ${moonHouse === rahuHouse ? 'Rahu' : 'Ketu'}.`);
+    }
+    if (grahanDetails.length) {
+        addYoga('bad', 'grahan', grahanDetails.join(' '));
+    }
+
+    // Shrapit Yoga
+    if (getHouse('Saturn') && getHouse('Saturn') === rahuHouse) {
+        addYoga('bad', 'shrapit', `Saturn and Rahu conjoin in the ${rahuHouse}th house.`);
+    }
+
+    // Angarak Yoga
+    if (marsHouse && marsHouse === rahuHouse) {
+        addYoga('bad', 'angarak', `Mars and Rahu unite in the ${rahuHouse}th house.`);
+    }
+
+    // Kuja Dosha
+    if (marsHouse && [1, 4, 7, 8, 12].includes(marsHouse)) {
+        addYoga('bad', 'kuja', `Mars resides in house ${marsHouse}, potentially impacting partnerships.`);
+    }
+
+    // Bhanga Yoga (malefics touching benefic yogas)
+    const maleficHouseSet = new Set(MALIFIC_PLANETS.map(planet => getHouse(planet)).filter(Boolean));
+    const bhangaDetails = [];
+    if (addedKeys.good.has('raj') && (maleficHouseSet.has(1) || maleficHouseSet.has(10))) {
+        bhangaDetails.push('Malefic presence in the 1st/10th houses can dilute Raj Yoga outcomes.');
+    }
+    if (addedKeys.good.has('dhana') && maleficHouseSet.has(11)) {
+        bhangaDetails.push('Malefics occupying the 11th house may obstruct Dhana Yoga gains.');
+    }
+    if (bhangaDetails.length) {
+        addYoga('bad', 'bhanga', bhangaDetails.join(' '));
+    }
+
+    return results;
+}
 
 // House calculation function
 function getRelativeHouseNumber(ascendantSign, planetSign) {
@@ -3152,10 +3703,11 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
     let houseLordsHTML = '';
     let planetsHouseEffectsHTML = generatePlanetsHouseEffectsHTML(apiResult, language, currentDasha);
     const houseLordsEffects = language === 'hi' ? HOUSE_LORDS_EFFECTS_HINDI : HOUSE_LORDS_EFFECTS;
+    let planetsData = null;
+    let ascendantSign = null;
     
     if (apiResult.output && Array.isArray(apiResult.output) && apiResult.output.length > 1) {
-        const planetsData = apiResult.output[1];
-        let ascendantSign = null;
+        planetsData = apiResult.output[1];
         if (planetsData.Ascendant) ascendantSign = planetsData.Ascendant.current_sign;
 
         // Table of planetary positions
@@ -3246,6 +3798,9 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
         }
     }
 
+    const yogaResults = ascendantSign ? computeYogas(planetsData, ascendantSign) : { good: [], bad: [] };
+    const yogaSection = generateYogaSection(yogaResults, language);
+
     // ------------ RENDER THE HTML ------------
    return `
     <button onclick="goBackToForm()" class="back-button">${texts.backButton}</button>
@@ -3295,12 +3850,15 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
                     </table>
                 </div>
             </div>
-                   <div class="planets-section">
-  <h2>${texts.houseLordInHouses}</h2>
-            ${houseLordsHTML}
             <div class="planets-section">
-  <h2>${texts.planetaryHouseEffects}</h2>
-  ${planetsHouseEffectsHTML} 
+                <h2>${texts.houseLordInHouses}</h2>
+                ${houseLordsHTML}
+            </div>
+            <div class="planets-section">
+                <h2>${texts.planetaryHouseEffects}</h2>
+                ${planetsHouseEffectsHTML}
+            </div>
+            ${yogaSection}
             <div class="article-intro" style="margin-top: 60px;">
                 <p style="font-size: 18px; color: #666; font-style: italic;">
                     ${texts.footerNote}
