@@ -91,7 +91,17 @@ Answer:
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
       console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      
+      let errorMessage = `OpenAI API error: ${openaiResponse.status}`;
+      if (openaiResponse.status === 429) {
+        errorMessage = 'Rate limit exceeded. Please try again in a moment.';
+      } else if (openaiResponse.status === 401) {
+        errorMessage = 'Invalid API key. Please check your OpenAI API key.';
+      } else if (openaiResponse.status === 402) {
+        errorMessage = 'Payment required. Please check your OpenAI account billing.';
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const completion = await openaiResponse.json();

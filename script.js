@@ -829,8 +829,18 @@ function setupChatbotUI() {
             updateChatbotMessage(placeholder, answer);
         } catch (error) {
             console.error('Chatbot error:', error);
-            const fallback = getChatbotAnswer(question);
-            updateChatbotMessage(placeholder, fallback);
+            // Try to get a helpful error message
+            let errorMsg = error.message || 'An error occurred';
+            if (errorMsg.includes('429') || errorMsg.includes('Rate limit')) {
+                const rateLimitMsg = chatbotLanguage === 'hi' 
+                    ? 'अभी बहुत सारे अनुरोध हैं। कृपया कुछ क्षण बाद पुनः प्रयास करें।' 
+                    : 'Too many requests right now. Please try again in a moment.';
+                updateChatbotMessage(placeholder, rateLimitMsg);
+            } else {
+                // Fallback to local search
+                const fallback = getChatbotAnswer(question);
+                updateChatbotMessage(placeholder, fallback);
+            }
         }
     });
 }
