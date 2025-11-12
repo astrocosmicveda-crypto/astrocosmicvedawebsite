@@ -268,6 +268,10 @@ const PLANET_LIST = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Satu
 const MALIFIC_PLANETS = ['Saturn', 'Mars', 'Rahu', 'Ketu'];
 const BENEFIC_PLANETS = ['Jupiter', 'Venus', 'Mercury'];
 
+let chatbotKnowledge = [];
+let chatbotLanguage = 'en';
+let chatbotReady = false;
+
 const PLANET_DIGNITIES = {
     Sun: { own: [5], exalted: 1, debilitated: 7 },
     Moon: { own: [4], exalted: 2, debilitated: 8 },
@@ -768,6 +772,238 @@ function computeYogas(planetsData, ascendantSign) {
     }
 
     return results;
+}
+
+function setupChatbotUI() {
+    const toggle = document.getElementById('chatbotToggle');
+    const windowEl = document.getElementById('chatbotWindow');
+    const closeBtn = document.getElementById('chatbotClose');
+    const form = document.getElementById('chatbotForm');
+    const input = document.getElementById('chatbotInput');
+
+    if (!toggle || !windowEl || !form || !input) return;
+
+    const showWindow = () => {
+        windowEl.classList.remove('hidden');
+        if (!chatbotReady) {
+            appendChatbotMessage('bot', 'Generate your birth chart to enable Q&A about your personalised results.', true);
+        }
+        setTimeout(() => {
+            input.focus();
+        }, 120);
+    };
+
+    const hideWindow = () => {
+        windowEl.classList.add('hidden');
+    };
+
+    toggle.addEventListener('click', () => {
+        if (windowEl.classList.contains('hidden')) {
+            showWindow();
+        } else {
+            hideWindow();
+        }
+    });
+
+    closeBtn?.addEventListener('click', hideWindow);
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const question = input.value.trim();
+        if (!question) return;
+
+        appendChatbotMessage('user', question);
+        input.value = '';
+
+        if (!chatbotReady) {
+            appendChatbotMessage('bot', 'I can help once you generate your birth chart. Please fill the form and tap Generate.');
+            return;
+        }
+
+        const thinkingMessage = chatbotLanguage === 'hi' ? 'सोच रहा हूँ…' : 'Thinking…';
+        const placeholder = appendChatbotMessage('bot', thinkingMessage, true);
+
+        try {
+            const answer = await fetchChatGPTAnswer(question);
+            updateChatbotMessage(placeholder, answer);
+        } catch (error) {
+            console.error('Chatbot error:', error);
+            const fallback = getChatbotAnswer(question);
+            updateChatbotMessage(placeholder, fallback);
+        }
+    });
+}
+
+function appendChatbotMessage(sender, text, allowDuplicate = false) {
+    const messagesEl = document.getElementById('chatbotMessages');
+    if (!messagesEl) return null;
+
+    if (!allowDuplicate && messagesEl.lastElementChild && messagesEl.lastElementChild.dataset && messagesEl.lastElementChild.dataset.text === text && messagesEl.lastElementChild.classList.contains(sender)) {
+        return messagesEl.lastElementChild;
+    }
+
+    const messageEl = document.createElement('div');
+    messageEl.className = `chatbot-message ${sender}`;
+    messageEl.textContent = text;
+    messageEl.dataset.text = text;
+    messagesEl.appendChild(messageEl);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return messageEl;
+}
+
+function updateChatbotMessage(messageEl, newText) {
+    if (!messageEl) return;
+    messageEl.textContent = newText;
+    messageEl.dataset.text = newText;
+}
+
+function initializeChatbot(language = 'en') {
+    const messagesEl = document.getElementById('chatbotMessages');
+    if (messagesEl) {
+        messagesEl.innerHTML = '';
+    }
+
+    chatbotKnowledge = [];
+    chatbotLanguage = language || 'en';
+    chatbotReady = false;
+
+    const articleContent = document.querySelector('.article-content');
+    if (!articleContent) {
+        appendChatbotMessage('bot', chatbotLanguage === 'hi'
+            ? 'कृपया पहले अपनी जन्म कुंडली बनाएँ।'
+            : 'Please generate your birth chart to start chatting.');
+        return;
+    }
+
+    const headings = articleContent.querySelectorAll('h1, h2, h3, h4');
+    headings.forEach((heading) => {
+        let pointer = heading.nextElementSibling;
+        while (pointer && !['H1', 'H2', 'H3', 'H4'].includes(pointer.tagName)) {
+            const text = pointer.innerText ? pointer.innerText.trim() : '';
+            if (text && text.length > 40) {
+                chatbotKnowledge.push({
+                    title: heading.innerText.trim(),
+                    content: text,
+                    contentLower: text.toLowerCase()
+                });
+            }
+            if (pointer.tagName === 'DIV' && pointer.classList.contains('yoga-card')) {
+                const cardHeading = pointer.querySelector('h3');
+                const cardText = pointer.innerText.trim();
+                if (cardText.length > 40) {
+                    chatbotKnowledge.push({
+                        title: cardHeading ? cardHeading.innerText.trim() : heading.innerText.trim(),
+                        content: cardText,
+                        contentLower: cardText.toLowerCase()
+                    });
+                }
+            }
+            pointer = pointer.nextElementSibling;
+        }
+    });
+
+    const fullArticleText = articleContent.innerText.trim();
+    if (fullArticleText) {
+        chatbotKnowledge.push({
+            title: chatbotLanguage === 'hi' ? 'पूर्ण रिपोर्ट' : 'Full Report',
+            content: fullArticleText,
+            contentLower: fullArticleText.toLowerCase()
+        });
+    }
+
+    chatbotReady = chatbotKnowledge.length > 0;
+
+    const introMessage = chatbotLanguage === 'hi'
+        ? 'नमस्ते! मैं आपके वैदिक जन्म विश्लेषण से उत्तर देता हूँ। किसी भी सेक्शन या योग के बारे में पूछें।'
+        : 'Hi! I answer using your Vedic birth analysis. Ask about any section, yoga, or placement.';
+    appendChatbotMessage('bot', introMessage, true);
+}
+
+function getRelevantKnowledge(question, maxItems = 3) {
+    if (!chatbotKnowledge.length) {
+        return [];
+    }
+
+    const normalizedQuestion = question.toLowerCase();
+    const tokens = normalizedQuestion.split(/\W+/).filter(word => word.length > 2);
+
+    const scored = chatbotKnowledge.map(entry => {
+        let score = 0;
+        tokens.forEach((word) => {
+            if (entry.contentLower.includes(word)) {
+                score += 1;
+            }
+            if (entry.title && entry.title.toLowerCase().includes(word)) {
+                score += 2;
+            }
+        });
+        if (normalizedQuestion.includes('yoga') && entry.title.toLowerCase().includes('yoga')) {
+            score += 2;
+        }
+        return { entry, score };
+    });
+
+    return scored
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, maxItems)
+        .map(item => item.entry);
+}
+
+function getChatbotAnswer(question) {
+    if (!chatbotKnowledge.length) {
+        return chatbotLanguage === 'hi'
+            ? 'मैं अभी आपकी रिपोर्ट नहीं पढ़ पा रहा हूँ। कृपया पहले रिपोर्ट तैयार करें।'
+            : 'I cannot see your report yet. Please generate it first.';
+    }
+
+    const matches = getRelevantKnowledge(question, 1);
+    if (matches.length) {
+        const bestMatch = matches[0];
+        const snippet = bestMatch.content.length > 700 ? bestMatch.content.slice(0, 700) + '…' : bestMatch.content;
+        return `${bestMatch.title ? bestMatch.title + ': ' : ''}${snippet}`;
+    }
+
+    return chatbotLanguage === 'hi'
+        ? 'मुझे इस प्रश्न का उत्तर नहीं मिला। कृपया किसी सेक्शन या योग का नाम लेते हुए दोबारा पूछें।'
+        : 'I could not find that in your chart. Try referencing a section or yoga name from your report.';
+}
+
+async function fetchChatGPTAnswer(question) {
+    const relevant = getRelevantKnowledge(question, 3);
+    const payload = {
+        question,
+        language: chatbotLanguage,
+        context: relevant.map(item => ({
+            title: item.title,
+            content: item.content
+        }))
+    };
+
+    try {
+        // NOTE: Implement /api/chat on your server to call the OpenAI (or compatible) ChatGPT endpoint securely.
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`ChatGPT request failed (${response.status})`);
+        }
+
+        const data = await response.json();
+        if (!data || typeof data.answer !== 'string' || !data.answer.trim()) {
+            throw new Error('Empty response from ChatGPT backend');
+        }
+
+        return data.answer.trim();
+    } catch (error) {
+        console.warn('Chatbot fallback triggered:', error);
+        return getChatbotAnswer(question);
+    }
 }
 
 // House calculation function
@@ -3891,6 +4127,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingMessage = document.getElementById('loadingMessage');
     const result = document.getElementById('result');
     const resultContent = document.querySelector('.result-content');
+
+    setupChatbotUI();
     
     // Setup searchable dropdown with API
     const placeInput = document.getElementById('placeOfBirth');
@@ -4282,6 +4520,7 @@ document.addEventListener('DOMContentLoaded', function() {
             articleContent.innerHTML = articleHTML;
             articleView.classList.remove('hidden');
             articleView.classList.add('active');
+            initializeChatbot(language);
             
         } catch (error) {
             console.error('Error:', error);

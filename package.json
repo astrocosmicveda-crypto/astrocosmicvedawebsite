@@ -1,5 +1,29 @@
 {
   "dependencies": {
-    "firebase": "^12.5.0"
-  }
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "firebase": "^12.5.0",
+    "openai": "^6.8.1"
+  },
+  "name": "astrocosmicvedawebsite",
+  "version": "1.0.0",
+  "description": "A minimalistic home page for Kundli (Vedic Astrology) analysis application.",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrocosmicveda-crypto/astrocosmicvedawebsite.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/astrocosmicveda-crypto/astrocosmicvedawebsite/issues"
+  },
+  "homepage": "https://github.com/astrocosmicveda-crypto/astrocosmicvedawebsite#readme"
 }

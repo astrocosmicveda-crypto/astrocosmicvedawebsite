@@ -97,6 +97,21 @@
     <div id="articleView" class="article-view hidden">
         <div id="articleContent"></div>
     </div>
+
+    <div id="cosmicChatbot" class="chatbot">
+        <button id="chatbotToggle" class="chatbot-toggle" type="button">Ask Cosmic Guide</button>
+        <div id="chatbotWindow" class="chatbot-window hidden" aria-live="polite">
+            <div class="chatbot-header">
+                <span>Cosmic Guide</span>
+                <button id="chatbotClose" class="chatbot-close" type="button" aria-label="Close chat">×</button>
+            </div>
+            <div id="chatbotMessages" class="chatbot-messages"></div>
+            <form id="chatbotForm" class="chatbot-form">
+                <input type="text" id="chatbotInput" autocomplete="off" placeholder="Ask about your chart…" aria-label="Ask a question about your chart">
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
     
     <!-- Firebase SDK -->
     <script type="module">
