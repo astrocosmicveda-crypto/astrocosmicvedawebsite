@@ -809,8 +809,9 @@ function setupChatbotUI() {
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
+        event.stopPropagation();
         const question = input.value.trim();
-        if (!question) return;
+        if (!question) return false;
 
         appendChatbotMessage('user', question);
         input.value = '';
