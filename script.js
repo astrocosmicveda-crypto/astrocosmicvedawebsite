@@ -981,7 +981,7 @@ async function fetchChatGPTAnswer(question) {
     };
 
     try {
-        // NOTE: Implement /api/chat on your server to call the OpenAI (or compatible) ChatGPT endpoint securely.
+        console.log('Calling /api/chat with payload:', payload);
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
@@ -990,18 +990,34 @@ async function fetchChatGPTAnswer(question) {
             body: JSON.stringify(payload)
         });
 
+        console.log('Response status:', response.status, response.statusText);
+
         if (!response.ok) {
-            throw new Error(`ChatGPT request failed (${response.status})`);
+            const errorText = await response.text();
+            console.error('ChatGPT API error response:', errorText);
+            let errorMessage = `ChatGPT request failed (${response.status})`;
+            try {
+                const errorData = JSON.parse(errorText);
+                if (errorData.error) errorMessage = errorData.error;
+                if (errorData.details) errorMessage += ': ' + errorData.details;
+            } catch (e) {
+                // Not JSON, use the text as is
+                if (errorText) errorMessage += ': ' + errorText;
+            }
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
+        console.log('ChatGPT response data:', data);
+        
         if (!data || typeof data.answer !== 'string' || !data.answer.trim()) {
             throw new Error('Empty response from ChatGPT backend');
         }
 
         return data.answer.trim();
     } catch (error) {
-        console.warn('Chatbot fallback triggered:', error);
+        console.error('ChatGPT API error:', error);
+        console.warn('Falling back to local search');
         return getChatbotAnswer(question);
     }
 }
