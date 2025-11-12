@@ -3,12 +3,20 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+
+// Serve static files (HTML, CSS, JS, images)
+app.use(express.static(__dirname));
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -67,6 +75,7 @@ Answer:
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Chat server running on port ${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Open your browser and visit: http://localhost:${PORT}`);
 });
 
