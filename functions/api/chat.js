@@ -3,8 +3,34 @@
  * This runs as a serverless function on Cloudflare Pages
  */
 
-export async function onRequestPost(context) {
+export async function onRequest(context) {
   const { request, env } = context;
+  
+  // Handle OPTIONS for CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }
+    });
+  }
+  
+  // Only allow POST requests
+  if (request.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed. Use POST.' }),
+      { 
+        status: 405, 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Allow': 'POST, OPTIONS'
+        } 
+      }
+    );
+  }
   
   try {
     const { question, language, context: reportContext } = await request.json();
@@ -102,15 +128,4 @@ Answer:
   }
 }
 
-// Handle OPTIONS for CORS preflight
-export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
-  });
-}
 
