@@ -831,13 +831,24 @@ function setupChatbotUI() {
             console.error('Chatbot error:', error);
             // Try to get a helpful error message
             let errorMsg = error.message || 'An error occurred';
+            
             if (errorMsg.includes('429') || errorMsg.includes('Rate limit')) {
                 const rateLimitMsg = chatbotLanguage === 'hi' 
                     ? 'अभी बहुत सारे अनुरोध हैं। कृपया कुछ क्षण बाद पुनः प्रयास करें।' 
                     : 'Too many requests right now. Please try again in a moment.';
                 updateChatbotMessage(placeholder, rateLimitMsg);
+            } else if (errorMsg.includes('Network error') || errorMsg.includes('Cannot reach') || errorMsg.includes('Failed to fetch')) {
+                // Network/connection error - use fallback
+                const networkErrorMsg = chatbotLanguage === 'hi'
+                    ? 'सर्वर से कनेक्ट नहीं हो सका। स्थानीय खोज का उपयोग कर रहे हैं...'
+                    : 'Could not connect to server. Using local search...';
+                updateChatbotMessage(placeholder, networkErrorMsg);
+                setTimeout(() => {
+                    const fallback = getChatbotAnswer(question);
+                    updateChatbotMessage(placeholder, fallback);
+                }, 500);
             } else {
-                // Fallback to local search
+                // Fallback to local search for other errors
                 const fallback = getChatbotAnswer(question);
                 updateChatbotMessage(placeholder, fallback);
             }
@@ -993,13 +1004,33 @@ async function fetchChatGPTAnswer(question) {
 
     try {
         console.log('Calling /api/chat with payload:', payload);
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
+        
+        let response;
+        try {
+            // Create abort controller for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            
+            response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+        } catch (fetchError) {
+            // Handle network errors
+            if (fetchError.name === 'AbortError') {
+                throw new Error('Request timeout. The server took too long to respond.');
+            } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
+                throw new Error('Network error: Cannot reach the server. The API endpoint may not be deployed.');
+            } else {
+                throw fetchError;
+            }
+        }
 
         console.log('Response status:', response.status, response.statusText);
 
