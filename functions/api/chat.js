@@ -6,6 +6,9 @@
 export async function onRequest(context) {
   const { request, env } = context;
   
+  // Log for debugging
+  console.log('Function called:', request.method, request.url);
+  
   // Handle OPTIONS for CORS preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -21,12 +24,13 @@ export async function onRequest(context) {
   // Only allow POST requests
   if (request.method !== 'POST') {
     return new Response(
-      JSON.stringify({ error: 'Method not allowed. Use POST.' }),
+      JSON.stringify({ error: 'Method not allowed. Use POST.', method: request.method }),
       { 
         status: 405, 
         headers: { 
           'Content-Type': 'application/json',
-          'Allow': 'POST, OPTIONS'
+          'Allow': 'POST, OPTIONS',
+          'Access-Control-Allow-Origin': '*'
         } 
       }
     );
