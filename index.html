@@ -8,7 +8,10 @@
     <meta http-equiv='cache-control' content='no-cache'> 
     <meta http-equiv='expires' content='0'> 
     <meta http-equiv='pragma' content='no-cache'>
-    <title>Discover Your Cosmic Blueprint</title>
+    <meta name="description" content="Free Vedic Kundli Analysis - Discover your cosmic blueprint with detailed birth chart analysis, planetary positions, house lords, and astrological insights. Get personalized Vedic astrology readings in English and Hindi.">
+    <meta name="keywords" content="vedic astrology, kundli, birth chart, horoscope, jyotish, astrological analysis, planetary positions, house lords">
+    <meta name="author" content="AstroCosmicVeda">
+    <title>Discover Your Cosmic Blueprint - Free Vedic Kundli Analysis</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="icon" type="image/png" href="homepagecircle.png">
@@ -16,11 +19,52 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">AstroCosmicVeda</a>
+            <button class="nav-toggle" aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link active">Home</a></li>
+                <li><a href="about.html" class="nav-link">About</a></li>
+                <li><a href="contact.html" class="nav-link">Contact</a></li>
+                <li><a href="privacy.html" class="nav-link">Privacy Policy</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <main class="main-content">
     <div id="mainContainer" class="container">
         <div class="header">
             <h1>Discover Your Cosmic Blueprint</h1>
             <h2>Vedic Kundli Analysis</h2>
             <p class="subtitle">Enter your birth details</p>
+        </div>
+        
+        <div class="intro-content">
+            <p>Welcome to AstroCosmicVeda, your trusted source for authentic Vedic astrology analysis. Our free Kundli analysis tool provides comprehensive insights into your birth chart, helping you understand the cosmic influences that shape your life.</p>
+            
+            <h3>What You'll Get</h3>
+            <ul>
+                <li><strong>Complete Birth Chart Analysis:</strong> Detailed planetary positions and their significance in your life</li>
+                <li><strong>House Lord Effects:</strong> Understanding how each house lord influences different aspects of your life</li>
+                <li><strong>Yoga Detection:</strong> Identification of auspicious and challenging yogas in your chart</li>
+                <li><strong>Planetary Dignities:</strong> Analysis of planets in their own, exalted, or debilitated signs</li>
+                <li><strong>Dasha Analysis:</strong> Current and upcoming planetary periods affecting your life</li>
+                <li><strong>Bilingual Support:</strong> Available in both English and Hindi</li>
+            </ul>
+            
+            <p>Simply enter your birth details below to receive your personalized Vedic astrology reading. Our analysis is based on authentic Jyotish (Vedic astrology) principles, ensuring accurate and meaningful insights.</p>
+        </div>
+        
+        <div class="sample-report-section">
+            <button type="button" id="viewSampleBtn" class="sample-report-btn">
+                📊 View Sample Report
+            </button>
+            <p class="sample-note">Want to see what a complete report looks like? Click above to view a sample Kundli analysis.</p>
         </div>
         
         <form id="kundliForm" class="kundli-form" action="javascript:void(0);">
@@ -93,7 +137,8 @@
         </div>
         
     </div>
-    
+    </main>
+
     <div id="articleView" class="article-view hidden">
         <div id="articleContent"></div>
     </div>
@@ -167,5 +212,56 @@
         }
     </script>
     <script src="script.js"></script>
+    <script>
+        // Mobile navigation toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.querySelector('.nav-toggle');
+            const navMenu = document.querySelector('.nav-menu');
+            
+            if (navToggle && navMenu) {
+                navToggle.addEventListener('click', function() {
+                    navMenu.classList.toggle('active');
+                });
+                
+                // Close menu when clicking on a link
+                const navLinks = document.querySelectorAll('.nav-link');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        navMenu.classList.remove('active');
+                    });
+                });
+            }
+        });
+    </script>
+    
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>AstroCosmicVeda</h3>
+                <p>Discover your cosmic blueprint through authentic Vedic astrology analysis.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="privacy.html">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Services</h4>
+                <ul>
+                    <li><a href="index.html">Free Kundli Analysis</a></li>
+                    <li><a href="index.html">Birth Chart Reading</a></li>
+                    <li><a href="index.html">Planetary Positions</a></li>
+                    <li><a href="index.html">House Lord Analysis</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 AstroCosmicVeda. All rights reserved.</p>
+        </div>
+    </footer>
 </body>
 </html>

@@ -4180,6 +4180,114 @@ window.goBackToForm = function() {
     window.scrollTo(0, 0);
 };
 
+// Sample report data generator
+function generateSampleReport() {
+    // Sample data - realistic birth chart data
+    // Signs: 1=Aries, 2=Taurus, 3=Gemini, 4=Cancer, 5=Leo, 6=Virgo, 7=Libra, 8=Scorpio, 9=Sagittarius, 10=Capricorn, 11=Aquarius, 12=Pisces
+    // Leo Ascendant (sign 5)
+    const ascendantSignNum = 5; // Leo
+    
+    const sampleApiResult = {
+        output: [
+            {
+                // Chart SVG data (simplified)
+                chart_svg: '<svg>Sample Chart</svg>'
+            },
+            {
+                // Planetary positions - Leo Ascendant (sign 5)
+                // current_sign should be 1-12 (sign number, not name)
+                // normDegree is the degree in the sign
+                // isRetro should be true/false or 'true'/'false'
+                Ascendant: { current_sign: ascendantSignNum, current_sign_num: ascendantSignNum - 1, normDegree: 12.5 },
+                Sun: { current_sign: 1, current_sign_num: 0, normDegree: 15.5, isRetro: false }, // Aries in 5th house
+                Moon: { current_sign: 3, current_sign_num: 2, normDegree: 22.3, isRetro: false }, // Gemini in 7th house
+                Mars: { current_sign: 8, current_sign_num: 7, normDegree: 8.7, isRetro: false }, // Scorpio in 12th house
+                Mercury: { current_sign: 12, current_sign_num: 11, normDegree: 18.9, isRetro: false }, // Pisces in 4th house
+                Jupiter: { current_sign: 4, current_sign_num: 3, normDegree: 12.4, isRetro: false }, // Cancer in 6th house
+                Venus: { current_sign: 11, current_sign_num: 10, normDegree: 25.1, isRetro: false }, // Aquarius in 3rd house
+                Saturn: { current_sign: 7, current_sign_num: 6, normDegree: 9.8, isRetro: false }, // Libra in 9th house
+                Rahu: { current_sign: 2, current_sign_num: 1, normDegree: 14.2, isRetro: false }, // Taurus in 6th house
+                Ketu: { current_sign: 8, current_sign_num: 7, normDegree: 14.2, isRetro: false }, // Scorpio in 12th house
+                ayanamsa: 23.85
+            },
+            {
+                // Dasha data
+                current_dasha: {
+                    major: { planet: 'Jupiter', start_date: '2020-01-15', end_date: '2036-01-15' },
+                    minor: { planet: 'Mercury', start_date: '2024-11-01', end_date: '2027-11-01' },
+                    sub: { planet: 'Venus', start_date: '2025-10-15', end_date: '2026-08-15' }
+                }
+            }
+        ]
+    };
+    
+    return sampleApiResult;
+}
+
+function showSampleReport() {
+    const sampleData = generateSampleReport();
+    const sampleName = 'Sample User';
+    const sampleDate = '1990-05-15';
+    const sampleTime = '10:30';
+    const samplePlace = 'Mumbai, Maharashtra, India';
+    const language = 'en';
+    
+    // Format date
+    const dateObj = new Date(sampleDate + 'T' + sampleTime + ':00');
+    const formattedDate = dateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        timeZone: 'Asia/Kolkata'
+    });
+    
+    // Create currentDasha object in the format expected by the code
+    const currentDasha = {
+        mahaDasha: 'Jupiter',
+        antarDasha: 'Mercury',
+        startTime: '2024-11-01 00:00:00',
+        endTime: '2027-11-01 00:00:00'
+    };
+    
+    // Generate article HTML
+    const articleHTML = generateArticleHTML(
+        sampleName,
+        sampleDate,
+        formattedDate,
+        sampleTime,
+        samplePlace,
+        sampleData,
+        language,
+        currentDasha
+    );
+    
+    // Hide main container and show article view
+    const mainContainer = document.getElementById('mainContainer');
+    const articleView = document.getElementById('articleView');
+    const articleContent = document.getElementById('articleContent');
+    
+    mainContainer.classList.add('hidden');
+    
+    // Add sample report banner
+    const sampleBanner = `
+        <div style="background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); padding: 15px 20px; margin-bottom: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <strong style="color: #8b5a00; font-size: 16px;">📊 Sample Report</strong>
+            <p style="color: #6b4a00; margin: 8px 0 0 0; font-size: 14px;">This is a sample Kundli analysis. Enter your birth details to generate your personalized report.</p>
+        </div>
+    `;
+    
+    articleContent.innerHTML = sampleBanner + articleHTML;
+    articleView.classList.remove('hidden');
+    articleView.classList.add('active');
+    
+    // Initialize chatbot
+    initializeChatbot(language);
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('kundliForm');
     const loadingMessage = document.getElementById('loadingMessage');
@@ -4187,6 +4295,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultContent = document.querySelector('.result-content');
 
     setupChatbotUI();
+    
+    // Sample report button
+    const viewSampleBtn = document.getElementById('viewSampleBtn');
+    if (viewSampleBtn) {
+        viewSampleBtn.addEventListener('click', showSampleReport);
+    }
     
     // Setup searchable dropdown with API
     const placeInput = document.getElementById('placeOfBirth');
