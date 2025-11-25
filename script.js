@@ -10,6 +10,8 @@
 const API_CONFIG = {
     url: 'https://json.freeastrologyapi.com/planets',
     mahaDashaUrl: 'https://json.freeastrologyapi.com/vimsottari/maha-dasas-and-antar-dasas',
+    shadbalaUrl: 'https://json.freeastrologyapi.com/shadbala/summary',
+    dasaInformationUrl: 'https://json.freeastrologyapi.com/vimsottari/dasa-information',
     key: 'zZ89eRlc4n5lxXNXXQZBE8i3eq2EhNsK4OZQLT5v'
 };
 
@@ -209,9 +211,286 @@ function generateYogaSection(yogaResults, language = 'en') {
         : '';
 
     return `
-    <section class="yoga-section">
+    <div class="yoga-section article-section" id="yogas">
         ${goodSection}
         ${badSection}
+    </div>
+    `;
+}
+
+// Generate Kundli Strength Assessment Section
+function generateStrengthAssessmentSection(planetsData, ascendantSign, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign) return '';
+    
+    const texts = language === 'hi' ? {
+        title: 'कुंडली शक्ति मूल्यांकन (Chart Strength Assessment)',
+        overallStrength: 'समग्र चार्ट शक्ति',
+        planetaryStrength: 'ग्रहीय शक्ति',
+        houseLordStrength: 'भाव स्वामी शक्ति',
+        planetaryAnalysis: 'ग्रहीय विश्लेषण',
+        planet: 'ग्रह',
+        dignity: 'गरिमा',
+        shadbala: 'षड्बल',
+        strength: 'शक्ति',
+        status: 'स्थिति',
+        house: 'भाव',
+        houseLordAnalysis: 'भाव स्वामी विश्लेषण',
+        houseNumber: 'भाव संख्या',
+        lord: 'स्वामी',
+        lordInHouse: 'स्वामी भाव में',
+        totalStrength: 'कुल शक्ति',
+        strong: 'मजबूत',
+        good: 'अच्छा',
+        moderate: 'मध्यम',
+        weak: 'कमजोर',
+        own: 'स्वयं',
+        exalted: 'उच्च',
+        moolatrikona: 'मूलत्रिकोण',
+        debilitated: 'नीच',
+        friendly: 'मित्र',
+        enemy: 'शत्रु',
+        neutral: 'तटस्थ',
+        retrograde: 'वक्री',
+        direct: 'मार्गी',
+        combust: 'दग्ध',
+        aspects: 'दृष्टि',
+        beneficial: 'शुभ',
+        malefic: 'अशुभ',
+        noData: 'डेटा उपलब्ध नहीं'
+    } : {
+        title: 'Kundli Strength Assessment',
+        overallStrength: 'Overall Chart Strength',
+        planetaryStrength: 'Planetary Strength',
+        houseLordStrength: 'House Lord Strength',
+        planetaryAnalysis: 'Planetary Analysis',
+        planet: 'Planet',
+        dignity: 'Dignity',
+        shadbala: 'Shadbala',
+        strength: 'Strength',
+        status: 'Status',
+        house: 'House',
+        houseLordAnalysis: 'House Lord Analysis',
+        houseNumber: 'House',
+        lord: 'Lord',
+        lordInHouse: 'Lord in House',
+        totalStrength: 'Total Strength',
+        strong: 'Strong',
+        good: 'Good',
+        moderate: 'Moderate',
+        weak: 'Weak',
+        own: 'Own Sign',
+        exalted: 'Exalted',
+        moolatrikona: 'Moolatrikona',
+        debilitated: 'Debilitated',
+        friendly: 'Friendly',
+        enemy: 'Enemy',
+        neutral: 'Neutral',
+        retrograde: 'Retrograde',
+        direct: 'Direct',
+        combust: 'Combust',
+        aspects: 'Aspects',
+        beneficial: 'Beneficial',
+        malefic: 'Malefic',
+        noData: 'No data available'
+    };
+    
+    // Calculate overall chart strength
+    const overallStrength = calculateOverallChartStrength(planetsData, ascendantSign, shadbalaApiData);
+    
+    // Get strength category color
+    const getStrengthColor = (category) => {
+        switch(category) {
+            case 'strong': return '#2e7d32';
+            case 'good': return '#388e3c';
+            case 'moderate': return '#f57c00';
+            case 'weak': return '#d32f2f';
+            default: return '#666';
+        }
+    };
+    
+    const strengthColor = overallStrength ? getStrengthColor(overallStrength.category) : '#666';
+    
+    let overallHTML = '';
+    if (overallStrength) {
+        overallHTML = `
+            <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0; color: #1a1a1a;">${texts.overallStrength}</h2>
+                <div style="display: flex; align-items: center; gap: 20px; margin: 20px 0;">
+                    <div style="flex: 1;">
+                        <div style="font-size: 48px; font-weight: bold; color: ${strengthColor};">
+                            ${overallStrength.overallStrength}%
+                        </div>
+                        <div style="font-size: 18px; color: ${strengthColor}; font-weight: 600; text-transform: capitalize;">
+                            ${texts[overallStrength.category] || overallStrength.category}
+                        </div>
+                    </div>
+                    <div style="flex: 1; border-left: 2px solid #ddd; padding-left: 20px;">
+                        <p style="margin: 5px 0;"><strong>${texts.planetaryStrength}:</strong> ${overallStrength.avgPlanetaryStrength}%</p>
+                        <p style="margin: 5px 0;"><strong>${texts.houseLordStrength}:</strong> ${overallStrength.avgHouseLordStrength}%</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Generate planetary analysis
+    let planetaryHTML = '<div class="strength-planetary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 30px 0;">';
+    
+    for (const [planet, planetInfo] of Object.entries(planetsData)) {
+        if (planet === 'Ascendant' || planet === 'ayanamsa' || !planetInfo || !planetInfo.current_sign) continue;
+        
+        const shadbala = calculateShadbala(planet, planetInfo, planetsData, ascendantSign, shadbalaApiData);
+        const dignity = calculatePlanetaryDignity(planet, planetInfo);
+        const combust = isPlanetCombust(planet, planetInfo, planetsData);
+        const planetHouse = getRelativeHouseNumber(ascendantSign, planetInfo.current_sign);
+        const isRetro = planetInfo.isRetro === true || planetInfo.isRetro === 'true';
+        
+        // Only show planets with Shadbala API data - skip if not available
+        if (!shadbala || !shadbala.fromApi) continue;
+        
+        const translatedPlanetName = PLANET_NAMES[language] && PLANET_NAMES[language][planet] 
+            ? PLANET_NAMES[language][planet] 
+            : planet;
+        
+        const dignityText = dignity ? texts[dignity.type] || dignity.type : texts.neutral;
+        const dignityStrength = dignity ? dignity.strength : 50;
+        
+        let statusBadges = '';
+        if (isRetro) {
+            statusBadges += `<span style="background: #ff9800; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-right: 5px;">${texts.retrograde}</span>`;
+        }
+        if (combust) {
+            statusBadges += `<span style="background: #f44336; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px;">${texts.combust}</span>`;
+        }
+        
+        // Use Shadbala value from API only - skip if not available
+        if (!shadbala || !shadbala.fromApi) {
+            continue; // Skip planets without API data
+        }
+        
+        // Use Shadbala value from API and its category
+        const shadbalaValue = shadbala.shadbala;
+        const strengthLevel = shadbala.strengthCategory; // 'strong', 'moderate', or 'weak'
+        const strengthCategory = shadbala.strengthCategory;
+        const displayStrength = shadbala.displayStrength || 50;
+        
+        const strengthColorBar = getStrengthColor(strengthLevel);
+        
+        planetaryHTML += `
+            <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${strengthColorBar}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin-top: 0; color: #1a1a1a;">${translatedPlanetName}</h3>
+                <div style="margin: 10px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span><strong>${texts.dignity}:</strong></span>
+                        <span style="color: ${strengthColorBar}; font-weight: 600;">${dignityText}</span>
+                    </div>
+                    ${shadbala ? `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span><strong>${texts.shadbala}:</strong></span>
+                            <span style="font-weight: 600;">${shadbalaValue.toFixed(1)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span><strong>${language === 'hi' ? 'श्रेणी' : 'Category'}:</strong></span>
+                            <span style="color: ${strengthColorBar}; font-weight: 600; text-transform: capitalize;">${texts[strengthLevel] || strengthLevel}</span>
+                        </div>
+                        ${shadbala.fromApi && shadbala.rupas ? `
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                <div>Rupas: ${shadbala.rupas.toFixed(3)} | Ishta Phala: ${shadbala.ishtaPhala?.toFixed(2) || 'N/A'} | Kashta Phala: ${shadbala.kashtaPhala?.toFixed(2) || 'N/A'}</div>
+                                ${shadbala.percentageStrength ? `<div>Percentage Strength: ${shadbala.percentageStrength.toFixed(2)}%</div>` : ''}
+                            </div>
+                        ` : ''}
+                        ${!shadbala.fromApi ? `
+                            <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                                <div>Positional: ${shadbala.sthanaBala}% | Directional: ${shadbala.digBala}%</div>
+                                <div>Aspects: ${texts.beneficial} ${shadbala.beneficialAspects}% | ${texts.malefic} ${shadbala.maleficAspects}%</div>
+                            </div>
+                        ` : ''}
+                    ` : ''}
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                        <span><strong>${texts.house}:</strong></span>
+                        <span>${getOrdinal(planetHouse, language)}</span>
+                    </div>
+                    ${statusBadges ? `<div style="margin-top: 10px;">${statusBadges}</div>` : ''}
+                    <div style="margin-top: 12px;">
+                        <div style="background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: ${strengthColorBar}; height: 100%; width: ${displayStrength}%; transition: width 0.3s;"></div>
+                        </div>
+                        <div style="text-align: center; margin-top: 5px; font-size: 14px; font-weight: 600; color: ${strengthColorBar};">
+                            Shadbala: ${shadbalaValue.toFixed(1)} - ${texts[strengthLevel] || strengthLevel}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    planetaryHTML += '</div>';
+    
+    // Generate house lord analysis
+    let houseLordHTML = '<div class="strength-house-lord-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin: 30px 0;">';
+    
+    // Focus on important houses: 1, 2, 4, 5, 7, 9, 10, 11
+    const importantHouses = [1, 2, 4, 5, 7, 9, 10, 11];
+    
+    for (const houseNum of importantHouses) {
+        const lordStrength = calculateHouseLordStrength(houseNum, ascendantSign, planetsData);
+        if (!lordStrength) continue;
+        
+        const translatedLordName = PLANET_NAMES[language] && PLANET_NAMES[language][lordStrength.lord]
+            ? PLANET_NAMES[language][lordStrength.lord]
+            : lordStrength.lord;
+        
+        const dignityText = lordStrength.dignity 
+            ? texts[lordStrength.dignity.type] || lordStrength.dignity.type 
+            : texts.neutral;
+        
+        const strengthLevel = lordStrength.totalStrength >= 75 ? 'strong' 
+            : lordStrength.totalStrength >= 60 ? 'good' 
+            : lordStrength.totalStrength >= 45 ? 'moderate' 
+            : 'weak';
+        const strengthColorBar = getStrengthColor(strengthLevel);
+        
+        houseLordHTML += `
+            <div style="background: white; padding: 18px; border-radius: 8px; border-top: 3px solid ${strengthColorBar}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="font-weight: 600; color: #1a1a1a; margin-bottom: 10px;">
+                    ${getOrdinal(houseNum, language)} ${texts.house} ${texts.lord}
+                </div>
+                <div style="font-size: 14px; color: #555; margin-bottom: 8px;">
+                    <strong>${translatedLordName}</strong> ${texts.lordInHouse} ${getOrdinal(lordStrength.lordHouse, language)}
+                </div>
+                <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
+                    ${texts.dignity}: <span style="color: ${strengthColorBar}; font-weight: 600;">${dignityText}</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div style="background: #e0e0e0; height: 6px; border-radius: 3px; overflow: hidden;">
+                        <div style="background: ${strengthColorBar}; height: 100%; width: ${lordStrength.totalStrength}%;"></div>
+                    </div>
+                    <div style="text-align: center; margin-top: 4px; font-size: 12px; font-weight: 600; color: ${strengthColorBar};">
+                        ${lordStrength.totalStrength}%
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    houseLordHTML += '</div>';
+    
+    // Add criteria note based on Shadbala thresholds
+    const criteriaNote = language === 'hi' 
+        ? '<p style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px; font-size: 14px; color: #856404;"><strong>शक्ति मानदंड:</strong> ग्रह <strong>मजबूत</strong> है यदि शड्बल ≥ 480, <strong>मध्यम</strong> है यदि 350-479, और <strong>कमजोर</strong> है यदि &lt; 350।</p>'
+        : '<p style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px; font-size: 14px; color: #856404;"><strong>Strength Criteria:</strong> A planet is <strong>Strong</strong> if Shadbala ≥ 480, <strong>Moderate</strong> if 350-479, and <strong>Weak</strong> if &lt; 350.</p>';
+    
+    return `
+    <div class="strength-assessment-section article-section" id="chart-strength">
+        <h1 style="color: #1a1a1a; margin-bottom: 30px; font-size: 28px; margin-top: 0;">${texts.title}</h1>
+        ${criteriaNote}
+        ${overallHTML}
+        
+        <h2 style="color: #1a1a1a; margin: 40px 0 20px 0; font-size: 22px;">${texts.planetaryAnalysis}</h2>
+        ${planetaryHTML}
+        
+        <h2 style="color: #1a1a1a; margin: 40px 0 20px 0; font-size: 22px;">${texts.houseLordAnalysis}</h2>
+        ${houseLordHTML}
     </section>
     `;
 }
@@ -281,6 +560,2217 @@ const PLANET_DIGNITIES = {
     Venus: { own: [2, 7], exalted: 12, debilitated: 6 },
     Saturn: { own: [10, 11], exalted: 7, debilitated: 1 }
 };
+
+// Moolatrikona signs (special dignity between own sign and exaltation)
+const MOOLATRIKONA = {
+    Sun: 5,      // Leo
+    Moon: 4,     // Cancer
+    Mars: 1,     // Aries
+    Mercury: 6,  // Virgo
+    Jupiter: 9,  // Sagittarius
+    Venus: 7,    // Libra
+    Saturn: 11   // Aquarius
+};
+
+// Planetary relationships (friendly/enemy)
+const PLANETARY_RELATIONSHIPS = {
+    Sun: { friends: ['Moon', 'Mars', 'Jupiter'], enemies: ['Venus', 'Saturn'], neutral: ['Mercury'] },
+    Moon: { friends: ['Sun', 'Mercury'], enemies: ['Mars', 'Saturn'], neutral: ['Jupiter', 'Venus'] },
+    Mars: { friends: ['Sun', 'Moon', 'Jupiter'], enemies: ['Mercury'], neutral: ['Venus', 'Saturn'] },
+    Mercury: { friends: ['Sun', 'Venus'], enemies: ['Moon'], neutral: ['Mars', 'Jupiter', 'Saturn'] },
+    Jupiter: { friends: ['Sun', 'Moon', 'Mars'], enemies: ['Mercury', 'Venus'], neutral: ['Saturn'] },
+    Venus: { friends: ['Mercury', 'Saturn'], enemies: ['Sun', 'Moon'], neutral: ['Mars', 'Jupiter'] },
+    Saturn: { friends: ['Mercury', 'Venus'], enemies: ['Sun', 'Moon', 'Mars'], neutral: ['Jupiter'] }
+};
+
+// Aspect (Drishti) patterns in Vedic astrology
+const ASPECT_PATTERNS = {
+    // Planets aspect specific houses from their position
+    // 1st, 7th house: full aspect (100%)
+    // 3rd, 10th house: 75% aspect (Mars/Saturn/Jupiter special)
+    // 5th, 9th house: 50% aspect (Jupiter special)
+    // All planets aspect 7th house (100%)
+    // Mars aspects 4th and 8th (75%)
+    // Saturn aspects 3rd and 10th (75%)
+    // Jupiter aspects 5th and 9th (50%)
+    getAspects: function(planet, planetHouse, planetSign) {
+        const aspects = {};
+        
+        // All planets aspect 7th house (full aspect)
+        const aspect7th = ((planetHouse + 6 - 1) % 12) + 1;
+        aspects[aspect7th] = { strength: 100, type: 'full' };
+        
+        if (planet === 'Mars') {
+            // Mars aspects 4th and 8th houses (75%)
+            const aspect4th = ((planetHouse + 3 - 1) % 12) + 1;
+            const aspect8th = ((planetHouse + 7 - 1) % 12) + 1;
+            aspects[aspect4th] = { strength: 75, type: 'special' };
+            aspects[aspect8th] = { strength: 75, type: 'special' };
+        }
+        
+        if (planet === 'Saturn') {
+            // Saturn aspects 3rd and 10th houses (75%)
+            const aspect3rd = ((planetHouse + 2 - 1) % 12) + 1;
+            const aspect10th = ((planetHouse + 9 - 1) % 12) + 1;
+            aspects[aspect3rd] = { strength: 75, type: 'special' };
+            aspects[aspect10th] = { strength: 75, type: 'special' };
+        }
+        
+        if (planet === 'Jupiter') {
+            // Jupiter aspects 5th and 9th houses (50%)
+            const aspect5th = ((planetHouse + 4 - 1) % 12) + 1;
+            const aspect9th = ((planetHouse + 8 - 1) % 12) + 1;
+            aspects[aspect5th] = { strength: 50, type: 'benefic' };
+            aspects[aspect9th] = { strength: 50, type: 'benefic' };
+        }
+        
+        return aspects;
+    }
+};
+
+// Shadbala (Six-fold strength) calculation system
+// Uses ONLY API data - no fallback calculations
+function calculateShadbala(planet, planetInfo, planetsData, ascendantSign, shadbalaApiData = null) {
+    if (!planetsData || !planetInfo) return null;
+    
+    // Only use API data - return null if not available
+    if (!shadbalaApiData || !shadbalaApiData[planet]) {
+        return null;
+    }
+    
+    // Use real Shadbala API data
+    if (shadbalaApiData && shadbalaApiData[planet]) {
+        const apiData = shadbalaApiData[planet];
+        const sign = planetInfo.current_sign;
+        const house = getRelativeHouseNumber(ascendantSign, sign);
+        
+        // Parse API data - use Shadbala value (sum of all six strengths)
+        const shadbalaValue = apiData.Shadbala || 0;
+        const rupas = apiData.rupas || 0;
+        const percentageStrength = apiData.percentage_strength || 0;
+        const ishtaPhala = apiData.ishta_phala || 0;
+        const kashtaPhala = apiData.kashta_phala || 0;
+        
+        // Categorize based on Shadbala value (from image criteria):
+        // Strong: >= 480 (Shadbala is sum of all six strengths)
+        // Moderate: 350-479
+        // Weak: < 350
+        let strengthCategory = 'moderate';
+        let displayPercentage = 50; // For visualization bar (0-100%)
+        
+        if (shadbalaValue >= 480) {
+            strengthCategory = 'strong';
+            // Map 480+ to 70-100% for display bar
+            // Typical range: 480-600, map to 70-100%
+            displayPercentage = 70 + Math.min(30, ((shadbalaValue - 480) / 120) * 30);
+        } else if (shadbalaValue < 350) {
+            strengthCategory = 'weak';
+            // Map <350 to 0-50% for display bar
+            // Typical range: 200-349, map to 0-50%
+            displayPercentage = (shadbalaValue / 350) * 50;
+            if (shadbalaValue < 200) displayPercentage = (shadbalaValue / 200) * 30; // Very weak planets
+        } else {
+            strengthCategory = 'moderate';
+            // Map 350-479 to 50-70% for display bar
+            displayPercentage = 50 + ((shadbalaValue - 350) / 130) * 20;
+        }
+        
+        // Ensure display percentage is within 0-100%
+        displayPercentage = Math.max(0, Math.min(100, displayPercentage));
+        
+        // Calculate aspects for additional info
+        let beneficialAspects = 0;
+        let maleficAspects = 0;
+        
+        if (planetsData) {
+            for (const [otherPlanet, otherInfo] of Object.entries(planetsData)) {
+                if (otherPlanet === planet || otherPlanet === 'Ascendant' || otherPlanet === 'ayanamsa') continue;
+                if (!otherInfo.current_sign) continue;
+                
+                const otherHouse = getRelativeHouseNumber(ascendantSign, otherInfo.current_sign);
+                const aspects = ASPECT_PATTERNS.getAspects(otherPlanet, otherHouse, otherInfo.current_sign);
+                
+                if (aspects[house]) {
+                    const aspectStrength = aspects[house].strength;
+                    if (BENEFIC_PLANETS.includes(otherPlanet)) {
+                        beneficialAspects += aspectStrength;
+                    } else if (MALIFIC_PLANETS.includes(otherPlanet)) {
+                        maleficAspects += aspectStrength;
+                    }
+                }
+            }
+        }
+        
+        return {
+            shadbala: shadbalaValue,
+            rupas: rupas,
+            percentageStrength: percentageStrength,
+            ishtaPhala: ishtaPhala,
+            kashtaPhala: kashtaPhala,
+            totalShadbala: Math.round(shadbalaValue), // Use Shadbala value (sum of six strengths)
+            displayStrength: Math.round(displayPercentage), // For display bars (0-100%)
+            strengthCategory: strengthCategory, // 'strong', 'moderate', or 'weak' based on thresholds
+            beneficialAspects: Math.round(beneficialAspects),
+            maleficAspects: Math.round(maleficAspects),
+            fromApi: true
+        };
+    }
+    
+    // No fallback - return null if API data not available
+    return null;
+}
+
+// Calculate planetary dignity status
+function calculatePlanetaryDignity(planet, planetInfo) {
+    if (!planetInfo || !planetInfo.current_sign) return null;
+    
+    const dignities = PLANET_DIGNITIES[planet];
+    if (!dignities) return null; // Rahu/Ketu
+    
+    const sign = planetInfo.current_sign;
+    const isOwnSign = dignities.own.includes(sign);
+    const isExalted = dignities.exalted === sign;
+    const isMoolatrikona = MOOLATRIKONA[planet] === sign;
+    const isDebilitated = dignities.debilitated === sign;
+    
+    let dignityType = 'neutral';
+    let dignityStrength = 50;
+    
+    if (isOwnSign) {
+        dignityType = 'own';
+        dignityStrength = 100;
+    } else if (isExalted) {
+        dignityType = 'exalted';
+        dignityStrength = 90;
+    } else if (isMoolatrikona) {
+        dignityType = 'moolatrikona';
+        dignityStrength = 85;
+    } else if (isDebilitated) {
+        dignityType = 'debilitated';
+        dignityStrength = 20;
+    } else {
+        // Check friendly/enemy relationship with sign lord
+        const signLord = ZODIAC_LORDS[sign];
+        const relationship = PLANETARY_RELATIONSHIPS[planet];
+        
+        if (relationship) {
+            if (relationship.friends.includes(signLord)) {
+                dignityType = 'friendly';
+                dignityStrength = 60;
+            } else if (relationship.enemies.includes(signLord)) {
+                dignityType = 'enemy';
+                dignityStrength = 40;
+            } else {
+                dignityType = 'neutral';
+                dignityStrength = 50;
+            }
+        }
+    }
+    
+    return {
+        type: dignityType,
+        strength: dignityStrength,
+        isOwnSign,
+        isExalted,
+        isMoolatrikona,
+        isDebilitated,
+        sign
+    };
+}
+
+// Check if planet is combust (too close to Sun)
+function isPlanetCombust(planet, planetInfo, planetsData) {
+    if (planet === 'Sun') return false; // Sun cannot be combust
+    
+    const sunInfo = planetsData?.Sun;
+    if (!sunInfo || !planetInfo) return false;
+    
+    // Planet is combust if within 8.5 degrees of Sun (simplified)
+    const sunSign = sunInfo.current_sign;
+    const planetSign = planetInfo.current_sign;
+    
+    if (sunSign !== planetSign) return false; // Different signs = not combust
+    
+    const sunDegree = sunInfo.normDegree || 0;
+    const planetDegree = planetInfo.normDegree || 0;
+    const distance = Math.abs(planetDegree - sunDegree);
+    
+    return distance <= 8.5; // Within 8.5 degrees = combust
+}
+
+// Calculate house lord strength
+function calculateHouseLordStrength(houseNumber, ascendantSign, planetsData) {
+    // Get the sign of the house
+    let houseSign = ascendantSign + houseNumber - 1;
+    if (houseSign > 12) houseSign -= 12;
+    
+    // Get the lord of that sign
+    const houseLord = ZODIAC_LORDS[houseSign];
+    if (!houseLord) return null;
+    
+    // Find the planet data
+    const lordInfo = planetsData[houseLord];
+    if (!lordInfo) return null;
+    
+    const lordSign = lordInfo.current_sign;
+    const lordHouse = getRelativeHouseNumber(ascendantSign, lordSign);
+    
+    // Calculate strength based on:
+    // 1. Dignity of the lord
+    const dignity = calculatePlanetaryDignity(houseLord, lordInfo);
+    
+    // 2. House placement
+    let houseStrength = 50;
+    if (KENDRA_HOUSES.includes(lordHouse)) houseStrength = 80;
+    else if (TRIKONA_HOUSES.includes(lordHouse)) houseStrength = 70;
+    else if (DUSTHANA_HOUSES.includes(lordHouse)) houseStrength = 40;
+    else houseStrength = 50;
+    
+    // 3. Special house positions
+    if (houseNumber === 1 && lordHouse === 1) houseStrength = 100; // Ascendant lord in ascendant
+    if (houseNumber === 10 && lordHouse === 10) houseStrength = 95; // 10th lord in 10th
+    
+    // Calculate total strength
+    const dignityStrength = dignity ? dignity.strength : 50;
+    const totalStrength = (dignityStrength + houseStrength) / 2;
+    
+    return {
+        houseNumber,
+        lord: houseLord,
+        lordSign,
+        lordHouse,
+        dignity: dignity,
+        houseStrength,
+        totalStrength: Math.round(totalStrength)
+    };
+}
+
+// Calculate overall chart strength
+function calculateOverallChartStrength(planetsData, ascendantSign, shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign) return null;
+    
+    const planetaryStrengths = [];
+    const houseLordStrengths = [];
+    
+    // Calculate strength for each planet
+    for (const [planet, planetInfo] of Object.entries(planetsData)) {
+        if (planet === 'Ascendant' || planet === 'ayanamsa') continue;
+        if (!planetInfo || !planetInfo.current_sign) continue;
+        
+        const shadbala = calculateShadbala(planet, planetInfo, planetsData, ascendantSign, shadbalaApiData);
+        if (shadbala) {
+            // For API data, use the Shadbala value; for calculated, use totalShadbala
+            const strengthValue = shadbala.fromApi ? shadbala.shadbala : shadbala.totalShadbala;
+            planetaryStrengths.push(strengthValue);
+        }
+    }
+    
+    // Calculate strength for each house lord
+    for (let houseNum = 1; houseNum <= 12; houseNum++) {
+        const lordStrength = calculateHouseLordStrength(houseNum, ascendantSign, planetsData);
+        if (lordStrength) {
+            houseLordStrengths.push(lordStrength.totalStrength);
+        }
+    }
+    
+    // Calculate averages
+    const avgPlanetaryStrength = planetaryStrengths.length > 0
+        ? planetaryStrengths.reduce((a, b) => a + b, 0) / planetaryStrengths.length
+        : 415; // Default to moderate range (350-479 average)
+    
+    const avgHouseLordStrength = houseLordStrengths.length > 0
+        ? houseLordStrengths.reduce((a, b) => a + b, 0) / houseLordStrengths.length
+        : 50; // For house lords, keep 0-100 scale
+    
+    // For API Shadbala values, they're already in the 200-600 range
+    // Normalize for overall strength calculation if needed
+    let normalizedPlanetaryStrength = avgPlanetaryStrength;
+    if (avgPlanetaryStrength > 100) {
+        // This is likely API Shadbala value, normalize it
+        // Strong >= 480, Moderate 350-479, Weak < 350
+        if (avgPlanetaryStrength >= 480) {
+            normalizedPlanetaryStrength = 85; // Strong
+        } else if (avgPlanetaryStrength >= 350) {
+            normalizedPlanetaryStrength = 60; // Moderate
+        } else {
+            normalizedPlanetaryStrength = 35; // Weak
+        }
+    }
+    
+    // Overall strength (weighted: 60% planetary, 40% house lords)
+    const overallStrength = (normalizedPlanetaryStrength * 0.6) + (avgHouseLordStrength * 0.4);
+    
+    // Categorize overall strength
+    let strengthCategory = 'moderate';
+    if (overallStrength >= 75) strengthCategory = 'strong';
+    else if (overallStrength >= 60) strengthCategory = 'good';
+    else if (overallStrength >= 45) strengthCategory = 'moderate';
+    else strengthCategory = 'weak';
+    
+    return {
+        overallStrength: Math.round(overallStrength),
+        category: strengthCategory,
+        avgPlanetaryStrength: Math.round(avgPlanetaryStrength),
+        avgHouseLordStrength: Math.round(avgHouseLordStrength),
+        planetaryCount: planetaryStrengths.length,
+        houseLordCount: houseLordStrengths.length
+    };
+}
+
+// Job Timing Prediction System
+function analyzeJobTiming(planetsData, ascendantSign, mahaDashaData, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign || !mahaDashaData) return null;
+    
+    // Get house lords for job-related houses
+    const getHouseLord = (houseNum) => {
+        let houseSign = ascendantSign + houseNum - 1;
+        if (houseSign > 12) houseSign -= 12;
+        return ZODIAC_LORDS[houseSign];
+    };
+    
+    const sixthLord = getHouseLord(6);
+    const tenthLord = getHouseLord(10);
+    const eleventhLord = getHouseLord(11);
+    const ascendantLord = getHouseLord(1);
+    const secondLord = getHouseLord(2);
+    const seventhLord = getHouseLord(7);
+    
+    // Parse mahaDasha data structure
+    let parsedData = mahaDashaData;
+    if (mahaDashaData.output && typeof mahaDashaData.output === 'object') {
+        parsedData = mahaDashaData.output;
+    } else if (typeof mahaDashaData === 'string') {
+        try {
+            parsedData = JSON.parse(mahaDashaData);
+            if (parsedData.output) parsedData = parsedData.output;
+        } catch (e) {
+            console.error('Error parsing mahaDashaData:', e);
+            return null;
+        }
+    }
+    
+    const now = new Date();
+    const jobPeriods = [];
+    const favorablePlanets = [sixthLord, tenthLord, eleventhLord, ascendantLord];
+    
+    // Analyze all upcoming dasha periods
+    for (const [mahaDashaPlanet, antarDasas] of Object.entries(parsedData)) {
+        for (const [antarDashaPlanet, period] of Object.entries(antarDasas)) {
+            if (!period.start_time || !period.end_time) continue;
+            
+            // Parse dates
+            let startDate, endDate;
+            try {
+                if (period.start_time.includes(' ')) {
+                    startDate = new Date(period.start_time.replace(' ', 'T'));
+                    endDate = new Date(period.end_time.replace(' ', 'T'));
+                } else {
+                    startDate = new Date(period.start_time);
+                    endDate = new Date(period.end_time);
+                }
+            } catch (e) {
+                continue;
+            }
+            
+            // Only consider future periods or current period
+            if (endDate < now) continue;
+            
+            // Check if this dasha is favorable for job
+            let favorabilityScore = 0;
+            let reasons = [];
+            
+            // Check if Mahadasha planet is a job-related lord
+            if (mahaDashaPlanet === sixthLord) {
+                favorabilityScore += 30;
+                reasons.push(`Mahadasha of ${sixthLord} (6th house lord - work/service)`);
+            }
+            if (mahaDashaPlanet === tenthLord) {
+                favorabilityScore += 40;
+                reasons.push(`Mahadasha of ${tenthLord} (10th house lord - career)`);
+            }
+            if (mahaDashaPlanet === eleventhLord) {
+                favorabilityScore += 30;
+                reasons.push(`Mahadasha of ${eleventhLord} (11th house lord - gains)`);
+            }
+            if (mahaDashaPlanet === ascendantLord) {
+                favorabilityScore += 20;
+                reasons.push(`Mahadasha of ${ascendantLord} (Ascendant lord)`);
+            }
+            
+            // Check Antar Dasha planet
+            if (antarDashaPlanet === sixthLord) {
+                favorabilityScore += 25;
+                reasons.push(`Antar Dasha of ${sixthLord} (6th house lord)`);
+            }
+            if (antarDashaPlanet === tenthLord) {
+                favorabilityScore += 35;
+                reasons.push(`Antar Dasha of ${tenthLord} (10th house lord - career)`);
+            }
+            if (antarDashaPlanet === eleventhLord) {
+                favorabilityScore += 25;
+                reasons.push(`Antar Dasha of ${eleventhLord} (11th house lord - gains)`);
+            }
+            if (antarDashaPlanet === ascendantLord) {
+                favorabilityScore += 15;
+                reasons.push(`Antar Dasha of ${ascendantLord} (Ascendant lord)`);
+            }
+            
+            // Check planet strength
+            const mahaPlanetInfo = planetsData[mahaDashaPlanet];
+            const antarPlanetInfo = planetsData[antarDashaPlanet];
+            
+            if (mahaPlanetInfo) {
+                const shadbala = calculateShadbala(mahaDashaPlanet, mahaPlanetInfo, planetsData, ascendantSign, shadbalaApiData);
+                if (shadbala && shadbala.fromApi) {
+                    // Use Shadbala thresholds: Strong >= 480, Weak < 350
+                    if (shadbala.shadbala >= 480) {
+                        favorabilityScore += 10;
+                        reasons.push(`Strong ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)})`);
+                    } else if (shadbala.shadbala < 350) {
+                        favorabilityScore -= 15;
+                        reasons.push(`Weak ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)}, may cause delays)`);
+                    }
+                }
+            }
+            
+            if (antarPlanetInfo) {
+                const shadbala = calculateShadbala(antarDashaPlanet, antarPlanetInfo, planetsData, ascendantSign, shadbalaApiData);
+                if (shadbala && shadbala.fromApi) {
+                    // Use Shadbala thresholds: Strong >= 480, Weak < 350
+                    if (shadbala.shadbala >= 480) {
+                        favorabilityScore += 8;
+                    } else if (shadbala.shadbala < 350) {
+                        favorabilityScore -= 10;
+                    }
+                }
+            }
+            
+            // Check if 10th lord and Ascendant lord are in conjunction or aspect
+            if (mahaDashaPlanet === tenthLord && antarDashaPlanet === ascendantLord) {
+                favorabilityScore += 20;
+                reasons.push(`10th lord (career) + Ascendant lord combination`);
+            }
+            if (mahaDashaPlanet === ascendantLord && antarDashaPlanet === tenthLord) {
+                favorabilityScore += 20;
+                reasons.push(`Ascendant lord + 10th lord (career) combination`);
+            }
+            
+            // Check house placements
+            if (mahaPlanetInfo) {
+                const mahaHouse = getRelativeHouseNumber(ascendantSign, mahaPlanetInfo.current_sign);
+                if (KENDRA_HOUSES.includes(mahaHouse)) {
+                    favorabilityScore += 10;
+                    reasons.push(`${mahaDashaPlanet} in Kendra house (${mahaHouse})`);
+                }
+                if (mahaHouse === 10) {
+                    favorabilityScore += 15;
+                    reasons.push(`${mahaDashaPlanet} in 10th house (career)`);
+                }
+                if (mahaHouse === 11) {
+                    favorabilityScore += 10;
+                    reasons.push(`${mahaDashaPlanet} in 11th house (gains)`);
+                }
+            }
+            
+            if (antarPlanetInfo) {
+                const antarHouse = getRelativeHouseNumber(ascendantSign, antarPlanetInfo.current_sign);
+                if (KENDRA_HOUSES.includes(antarHouse)) {
+                    favorabilityScore += 8;
+                }
+                if (antarHouse === 10) {
+                    favorabilityScore += 12;
+                }
+                if (antarHouse === 11) {
+                    favorabilityScore += 8;
+                }
+            }
+            
+            // Check if benefic planets
+            if (BENEFIC_PLANETS.includes(mahaDashaPlanet)) {
+                favorabilityScore += 10;
+            }
+            if (BENEFIC_PLANETS.includes(antarDashaPlanet)) {
+                favorabilityScore += 8;
+            }
+            
+            // Check 2nd and 7th house lords as supportive factors
+            if (mahaDashaPlanet === secondLord || antarDashaPlanet === secondLord) {
+                favorabilityScore += 8;
+                reasons.push(`Support from 2nd house lord (wealth/resources)`);
+            }
+            if (mahaDashaPlanet === seventhLord || antarDashaPlanet === seventhLord) {
+                favorabilityScore += 5;
+                reasons.push(`Support from 7th house lord (partnerships/contracts)`);
+            }
+            
+            // Check for malefic planets (may cause obstacles)
+            if (MALIFIC_PLANETS.includes(mahaDashaPlanet) && favorabilityScore < 50) {
+                favorabilityScore -= 5;
+            }
+            
+            // Categorize favorability
+            let category = 'moderate';
+            if (favorabilityScore >= 80) category = 'highly favorable';
+            else if (favorabilityScore >= 60) category = 'favorable';
+            else if (favorabilityScore >= 40) category = 'moderate';
+            else if (favorabilityScore >= 20) category = 'challenging';
+            else category = 'unfavorable';
+            
+            // Only include periods with at least moderate favorability
+            if (favorabilityScore >= 30 || 
+                favorablePlanets.includes(mahaDashaPlanet) || 
+                favorablePlanets.includes(antarDashaPlanet)) {
+                
+                jobPeriods.push({
+                    mahaDasha: mahaDashaPlanet,
+                    antarDasha: antarDashaPlanet,
+                    startDate: startDate,
+                    endDate: endDate,
+                    startTime: period.start_time,
+                    endTime: period.end_time,
+                    favorabilityScore: favorabilityScore,
+                    category: category,
+                    reasons: reasons
+                });
+            }
+        }
+    }
+    
+    // Sort by timing (earliest first), then by favorability score (highest first)
+    jobPeriods.sort((a, b) => {
+        const dateDiff = a.startDate.getTime() - b.startDate.getTime();
+        if (dateDiff !== 0) return dateDiff; // Sort by date first
+        return b.favorabilityScore - a.favorabilityScore; // Then by score
+    });
+    
+    // Limit to top 8 periods
+    const topPeriods = jobPeriods.slice(0, 8);
+    
+    return {
+        periods: topPeriods,
+        sixthLord: sixthLord,
+        tenthLord: tenthLord,
+        eleventhLord: eleventhLord,
+        ascendantLord: ascendantLord
+    };
+}
+
+// Generate Job Timing Prediction HTML Section
+function generateJobTimingSection(planetsData, ascendantSign, mahaDashaData, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign || !mahaDashaData) return '';
+    
+    const analysis = analyzeJobTiming(planetsData, ascendantSign, mahaDashaData, language, shadbalaApiData);
+    if (!analysis || !analysis.periods || analysis.periods.length === 0) return '';
+    
+    const texts = language === 'hi' ? {
+        title: 'नौकरी/कार्य की भविष्यवाणी (Job Timing Prediction)',
+        subtitle: 'अगले दशा काल में नौकरी की संभावनाएं',
+        highlyFavorable: 'अत्यधिक अनुकूल',
+        favorable: 'अनुकूल',
+        moderate: 'मध्यम',
+        challenging: 'चुनौतीपूर्ण',
+        unfavorable: 'अनुकूल नहीं',
+        mahaDasha: 'महादशा',
+        antarDasha: 'अंतर दशा',
+        period: 'अवधि',
+        score: 'अंक',
+        reasons: 'कारण',
+        recommended: 'अनुशंसित',
+        note: 'नोट',
+        noteText: 'यह भविष्यवाणी वैदिक ज्योतिष सिद्धांतों पर आधारित है। वास्तविक समय में, बृहस्पति और शनि की गोचर भी महत्वपूर्ण भूमिका निभाती है।',
+        sixthLord: 'षष्ठ भाव स्वामी (कार्य)',
+        tenthLord: 'दशम भाव स्वामी (करियर)',
+        eleventhLord: 'एकादश भाव स्वामी (लाभ)',
+        timingGuidance: 'समय मार्गदर्शन'
+    } : {
+        title: 'Job Timing Prediction',
+        subtitle: 'Upcoming favorable periods for employment opportunities',
+        highlyFavorable: 'Highly Favorable',
+        favorable: 'Favorable',
+        moderate: 'Moderate',
+        challenging: 'Challenging',
+        unfavorable: 'Unfavorable',
+        mahaDasha: 'Mahadasha',
+        antarDasha: 'Antar Dasha',
+        period: 'Period',
+        score: 'Score',
+        reasons: 'Reasons',
+        recommended: 'Recommended',
+        note: 'Note',
+        noteText: 'This prediction is based on Vedic astrology principles. In real-time, Jupiter and Saturn transits also play important roles in activating job opportunities.',
+        sixthLord: '6th House Lord (Work)',
+        tenthLord: '10th House Lord (Career)',
+        eleventhLord: '11th House Lord (Gains)',
+        timingGuidance: 'Timing Guidance'
+    };
+    
+    const getCategoryColor = (category) => {
+        switch(category) {
+            case 'highly favorable': return '#2e7d32';
+            case 'favorable': return '#388e3c';
+            case 'moderate': return '#f57c00';
+            case 'challenging': return '#d32f2f';
+            case 'unfavorable': return '#c62828';
+            default: return '#666';
+        }
+    };
+    
+    const formatDate = (dateStr) => {
+        try {
+            let date;
+            if (dateStr.includes(' ')) {
+                date = new Date(dateStr.replace(' ', 'T'));
+            } else {
+                date = new Date(dateStr);
+            }
+            return date.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    };
+    
+    let periodsHTML = '';
+    analysis.periods.forEach((period, index) => {
+        const mahaDashaName = PLANET_NAMES[language] && PLANET_NAMES[language][period.mahaDasha]
+            ? PLANET_NAMES[language][period.mahaDasha]
+            : period.mahaDasha;
+        const antarDashaName = PLANET_NAMES[language] && PLANET_NAMES[language][period.antarDasha]
+            ? PLANET_NAMES[language][period.antarDasha]
+            : period.antarDasha;
+        
+        const categoryColor = getCategoryColor(period.category);
+        const isRecommended = period.favorabilityScore >= 70;
+        
+        periodsHTML += `
+            <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${categoryColor}; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                ${isRecommended ? `<div style="background: #ffd700; color: #8b5a00; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px; font-weight: 600; font-size: 13px;">⭐ ${texts.recommended}</div>` : ''}
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                    <div>
+                        <h3 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 18px;">
+                            ${index + 1}. ${mahaDashaName} - ${antarDashaName}
+                        </h3>
+                        <div style="font-size: 14px; color: #666; margin-bottom: 8px;">
+                            <strong>${texts.period}:</strong> ${formatDate(period.startTime)} - ${formatDate(period.endTime)}
+                        </div>
+                        <div style="display: inline-block; background: ${categoryColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: capitalize;">
+                            ${texts[period.category] || period.category}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 24px; font-weight: bold; color: ${categoryColor};">
+                            ${period.favorabilityScore}
+                        </div>
+                        <div style="font-size: 11px; color: #666; text-transform: uppercase;">
+                            ${texts.score}
+                        </div>
+                    </div>
+                </div>
+                ${period.reasons && period.reasons.length > 0 ? `
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                        <div style="font-size: 13px; font-weight: 600; color: #555; margin-bottom: 8px;">${texts.reasons}:</div>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #666; line-height: 1.6;">
+                            ${period.reasons.map(reason => `<li style="margin-bottom: 4px;">${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    const sixthLordName = PLANET_NAMES[language] && PLANET_NAMES[language][analysis.sixthLord]
+        ? PLANET_NAMES[language][analysis.sixthLord]
+        : analysis.sixthLord;
+    const tenthLordName = PLANET_NAMES[language] && PLANET_NAMES[language][analysis.tenthLord]
+        ? PLANET_NAMES[language][analysis.tenthLord]
+        : analysis.tenthLord;
+    const eleventhLordName = PLANET_NAMES[language] && PLANET_NAMES[language][analysis.eleventhLord]
+        ? PLANET_NAMES[language][analysis.eleventhLord]
+        : analysis.eleventhLord;
+    
+    return `
+    <div class="job-timing-section article-section" id="job-timing">
+        <h1 style="color: #1a1a1a; margin-bottom: 10px; font-size: 28px; margin-top: 0;">${texts.title}</h1>
+        <p style="color: #666; margin-bottom: 30px; font-size: 15px;">${texts.subtitle}</p>
+        
+        <div style="background: #f5f7fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 16px;">${texts.timingGuidance}</h3>
+            <ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.8; font-size: 14px;">
+                <li><strong>${texts.sixthLord}:</strong> ${sixthLordName}</li>
+                <li><strong>${texts.tenthLord}:</strong> ${tenthLordName}</li>
+                <li><strong>${texts.eleventhLord}:</strong> ${eleventhLordName}</li>
+            </ul>
+        </div>
+        
+        ${periodsHTML}
+        
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-top: 30px; border-radius: 4px;">
+            <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.6;">
+                <strong>${texts.note}:</strong> ${texts.noteText}
+            </p>
+        </div>
+    </div>
+    `;
+}
+
+// Money Prediction Analysis
+function analyzeMoneyTiming(planetsData, ascendantSign, mahaDashaData, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign || !mahaDashaData) return null;
+    
+    const getHouseLord = (houseNum) => {
+        let houseSign = ascendantSign + houseNum - 1;
+        if (houseSign > 12) houseSign -= 12;
+        return ZODIAC_LORDS[houseSign];
+    };
+    
+    const secondLord = getHouseLord(2);  // Wealth
+    const tenthLord = getHouseLord(10);  // Career/Income
+    const eleventhLord = getHouseLord(11); // Gains
+    
+    let parsedData = mahaDashaData;
+    if (mahaDashaData.output && typeof mahaDashaData.output === 'object') {
+        parsedData = mahaDashaData.output;
+    } else if (typeof mahaDashaData === 'string') {
+        try {
+            parsedData = JSON.parse(mahaDashaData);
+            if (parsedData.output) parsedData = parsedData.output;
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    const now = new Date();
+    const moneyPeriods = [];
+    const wealthPlanets = [secondLord, tenthLord, eleventhLord];
+    
+    for (const [mahaDashaPlanet, antarDasas] of Object.entries(parsedData)) {
+        for (const [antarDashaPlanet, period] of Object.entries(antarDasas)) {
+            if (!period.start_time || !period.end_time) continue;
+            
+            let startDate, endDate;
+            try {
+                if (period.start_time.includes(' ')) {
+                    startDate = new Date(period.start_time.replace(' ', 'T'));
+                    endDate = new Date(period.end_time.replace(' ', 'T'));
+                } else {
+                    startDate = new Date(period.start_time);
+                    endDate = new Date(period.end_time);
+                }
+            } catch (e) {
+                continue;
+            }
+            
+            if (endDate < now) continue;
+            
+            let favorabilityScore = 0;
+            let reasons = [];
+            let prediction = 'neutral';
+            
+            // Check wealth-related house lords
+            if (mahaDashaPlanet === secondLord) {
+                favorabilityScore += 35;
+                reasons.push(`${secondLord} Mahadasha (2nd house lord - wealth/family resources)`);
+            }
+            if (mahaDashaPlanet === tenthLord) {
+                favorabilityScore += 40;
+                reasons.push(`${tenthLord} Mahadasha (10th house lord - career/income source)`);
+            }
+            if (mahaDashaPlanet === eleventhLord) {
+                favorabilityScore += 35;
+                reasons.push(`${eleventhLord} Mahadasha (11th house lord - gains/fulfillment)`);
+            }
+            
+            if (antarDashaPlanet === secondLord) {
+                favorabilityScore += 30;
+                reasons.push(`${secondLord} Antar Dasha (2nd house lord)`);
+            }
+            if (antarDashaPlanet === tenthLord) {
+                favorabilityScore += 35;
+                reasons.push(`${tenthLord} Antar Dasha (10th house lord)`);
+            }
+            if (antarDashaPlanet === eleventhLord) {
+                favorabilityScore += 30;
+                reasons.push(`${eleventhLord} Antar Dasha (11th house lord)`);
+            }
+            
+            // Check if benefic planets (Jupiter, Venus)
+            if (['Jupiter', 'Venus'].includes(mahaDashaPlanet)) {
+                favorabilityScore += 15;
+                reasons.push(`Benefic ${mahaDashaPlanet} Mahadasha supports wealth`);
+            }
+            if (['Jupiter', 'Venus'].includes(antarDashaPlanet)) {
+                favorabilityScore += 12;
+                reasons.push(`Benefic ${antarDashaPlanet} Antar Dasha`);
+            }
+            
+            // Check planet strength
+            const mahaPlanetInfo = planetsData[mahaDashaPlanet];
+            if (mahaPlanetInfo) {
+                const shadbala = calculateShadbala(mahaDashaPlanet, mahaPlanetInfo, planetsData, ascendantSign, shadbalaApiData);
+                if (shadbala && shadbala.fromApi) {
+                    // Use Shadbala value and categorize: Strong >= 480, Weak < 350, Moderate 350-479
+                    if (shadbala.shadbala >= 480) {
+                        favorabilityScore += 15;
+                        reasons.push(`Strong ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)})`);
+                    } else if (shadbala.shadbala < 350) {
+                        favorabilityScore -= 20;
+                        reasons.push(`Weak ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)}, may cause financial delays)`);
+                    }
+                }
+                
+                const house = getRelativeHouseNumber(ascendantSign, mahaPlanetInfo.current_sign);
+                if (house === 2 || house === 11) {
+                    favorabilityScore += 10;
+                    reasons.push(`${mahaDashaPlanet} in wealth house (${house})`);
+                }
+                if (KENDRA_HOUSES.includes(house)) {
+                    favorabilityScore += 8;
+                    reasons.push(`Strong house placement (Kendra)`);
+                }
+            }
+            
+            // Check malefic influences
+            if (MALIFIC_PLANETS.includes(mahaDashaPlanet) && !wealthPlanets.includes(mahaDashaPlanet)) {
+                if (favorabilityScore < 50) {
+                    favorabilityScore -= 15;
+                    reasons.push(`Malefic ${mahaDashaPlanet} may cause financial strain`);
+                }
+            }
+            
+            // Determine prediction category
+            if (favorabilityScore >= 75) {
+                prediction = 'highly favorable';
+            } else if (favorabilityScore >= 55) {
+                prediction = 'favorable';
+            } else if (favorabilityScore >= 35) {
+                prediction = 'moderate';
+            } else if (favorabilityScore >= 15) {
+                prediction = 'challenging';
+            } else {
+                prediction = 'unfavorable';
+            }
+            
+            if (favorabilityScore >= 30 || wealthPlanets.includes(mahaDashaPlanet) || wealthPlanets.includes(antarDashaPlanet)) {
+                moneyPeriods.push({
+                    mahaDasha: mahaDashaPlanet,
+                    antarDasha: antarDashaPlanet,
+                    startDate: startDate,
+                    endDate: endDate,
+                    startTime: period.start_time,
+                    endTime: period.end_time,
+                    favorabilityScore: favorabilityScore,
+                    prediction: prediction,
+                    reasons: reasons
+                });
+            }
+        }
+    }
+    
+    // Sort by timing (earliest first), then by favorability score (highest first)
+    moneyPeriods.sort((a, b) => {
+        const dateDiff = a.startDate.getTime() - b.startDate.getTime();
+        if (dateDiff !== 0) return dateDiff; // Sort by date first
+        return b.favorabilityScore - a.favorabilityScore; // Then by score
+    });
+    return {
+        periods: moneyPeriods.slice(0, 8),
+        secondLord: secondLord,
+        tenthLord: tenthLord,
+        eleventhLord: eleventhLord
+    };
+}
+
+// Health Prediction Analysis
+function analyzeHealthTiming(planetsData, ascendantSign, mahaDashaData, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign || !mahaDashaData) return null;
+    
+    const getHouseLord = (houseNum) => {
+        let houseSign = ascendantSign + houseNum - 1;
+        if (houseSign > 12) houseSign -= 12;
+        return ZODIAC_LORDS[houseSign];
+    };
+    
+    const sixthLord = getHouseLord(6);   // Diseases
+    const eighthLord = getHouseLord(8);  // Longevity/Health issues
+    const twelfthLord = getHouseLord(12); // Hospitalization/Loss
+    
+    let parsedData = mahaDashaData;
+    if (mahaDashaData.output && typeof mahaDashaData.output === 'object') {
+        parsedData = mahaDashaData.output;
+    } else if (typeof mahaDashaData === 'string') {
+        try {
+            parsedData = JSON.parse(mahaDashaData);
+            if (parsedData.output) parsedData = parsedData.output;
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    const now = new Date();
+    const healthPeriods = [];
+    const healthPlanets = [sixthLord, eighthLord, twelfthLord];
+    
+    for (const [mahaDashaPlanet, antarDasas] of Object.entries(parsedData)) {
+        for (const [antarDashaPlanet, period] of Object.entries(antarDasas)) {
+            if (!period.start_time || !period.end_time) continue;
+            
+            let startDate, endDate;
+            try {
+                if (period.start_time.includes(' ')) {
+                    startDate = new Date(period.start_time.replace(' ', 'T'));
+                    endDate = new Date(period.end_time.replace(' ', 'T'));
+                } else {
+                    startDate = new Date(period.start_time);
+                    endDate = new Date(period.end_time);
+                }
+            } catch (e) {
+                continue;
+            }
+            
+            if (endDate < now) continue;
+            
+            let concernScore = 0;
+            let reasons = [];
+            let prediction = 'neutral';
+            
+            // Health-related house lords
+            if (mahaDashaPlanet === sixthLord) {
+                concernScore += 30;
+                reasons.push(`${sixthLord} Mahadasha (6th house lord - diseases/health challenges)`);
+            }
+            if (mahaDashaPlanet === eighthLord) {
+                concernScore += 35;
+                reasons.push(`${eighthLord} Mahadasha (8th house lord - longevity/health crises)`);
+            }
+            if (mahaDashaPlanet === twelfthLord) {
+                concernScore += 30;
+                reasons.push(`${twelfthLord} Mahadasha (12th house lord - hospitalization/loss of vitality)`);
+            }
+            
+            if (antarDashaPlanet === sixthLord) {
+                concernScore += 25;
+                reasons.push(`${sixthLord} Antar Dasha`);
+            }
+            if (antarDashaPlanet === eighthLord) {
+                concernScore += 30;
+                reasons.push(`${eighthLord} Antar Dasha`);
+            }
+            if (antarDashaPlanet === twelfthLord) {
+                concernScore += 25;
+                reasons.push(`${twelfthLord} Antar Dasha`);
+            }
+            
+            // Check for debilitated planets
+            const mahaPlanetInfo = planetsData[mahaDashaPlanet];
+            if (mahaPlanetInfo) {
+                const dignity = calculatePlanetaryDignity(mahaDashaPlanet, mahaPlanetInfo);
+                if (dignity && dignity.isDebilitated) {
+                    concernScore += 20;
+                    reasons.push(`Debilitated ${mahaDashaPlanet} may cause health issues`);
+                }
+                
+                const house = getRelativeHouseNumber(ascendantSign, mahaPlanetInfo.current_sign);
+                if (house === 6 || house === 8 || house === 12) {
+                    concernScore += 15;
+                    reasons.push(`${mahaDashaPlanet} in health-related house (${house})`);
+                }
+            }
+            
+            // Check malefic planets (Saturn, Rahu, Ketu)
+            if (['Saturn', 'Rahu', 'Ketu'].includes(mahaDashaPlanet)) {
+                concernScore += 15;
+                reasons.push(`Malefic ${mahaDashaPlanet} period may trigger health concerns`);
+            }
+            
+            // Benefic planets can improve health
+            if (['Jupiter'].includes(mahaDashaPlanet)) {
+                concernScore -= 20;
+                reasons.push(`Jupiter Mahadasha can improve health and provide recovery`);
+            }
+            if (['Jupiter'].includes(antarDashaPlanet)) {
+                concernScore -= 15;
+                reasons.push(`Jupiter Antar Dasha supports recovery`);
+            }
+            
+            // Check planet strength (reuse mahaPlanetInfo already declared above)
+            if (mahaPlanetInfo) {
+                const shadbala = calculateShadbala(mahaDashaPlanet, mahaPlanetInfo, planetsData, ascendantSign, shadbalaApiData);
+                if (shadbala && shadbala.fromApi) {
+                    // Use Shadbala value and categorize: Strong >= 480, Weak < 350, Moderate 350-479
+                    if (shadbala.shadbala < 350) {
+                        concernScore += 15;
+                        reasons.push(`Weak ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)}) increases health vulnerability`);
+                    } else if (shadbala.shadbala >= 480) {
+                        concernScore -= 10;
+                        reasons.push(`Strong ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)}) mitigates health risks`);
+                    }
+                }
+            }
+            
+            // Determine prediction (lower concern score = better health)
+            const healthScore = 100 - Math.min(100, concernScore);
+            
+            if (healthScore >= 75) {
+                prediction = 'excellent';
+            } else if (healthScore >= 60) {
+                prediction = 'good';
+            } else if (healthScore >= 45) {
+                prediction = 'moderate';
+            } else if (healthScore >= 30) {
+                prediction = 'requires attention';
+            } else {
+                prediction = 'challenging';
+            }
+            
+            if (concernScore >= 20 || healthPlanets.includes(mahaDashaPlanet) || healthPlanets.includes(antarDashaPlanet)) {
+                healthPeriods.push({
+                    mahaDasha: mahaDashaPlanet,
+                    antarDasha: antarDashaPlanet,
+                    startDate: startDate,
+                    endDate: endDate,
+                    startTime: period.start_time,
+                    endTime: period.end_time,
+                    concernScore: concernScore,
+                    healthScore: healthScore,
+                    prediction: prediction,
+                    reasons: reasons
+                });
+            }
+        }
+    }
+    
+    // Sort by timing (earliest first), then by concern score (lower concern = better)
+    healthPeriods.sort((a, b) => {
+        const dateDiff = a.startDate.getTime() - b.startDate.getTime();
+        if (dateDiff !== 0) return dateDiff; // Sort by date first
+        return a.concernScore - b.concernScore; // Then by concern (lower is better)
+    });
+    return {
+        periods: healthPeriods.slice(0, 8),
+        sixthLord: sixthLord,
+        eighthLord: eighthLord,
+        twelfthLord: twelfthLord
+    };
+}
+
+// Relationship Prediction Analysis
+function analyzeRelationshipTiming(planetsData, ascendantSign, mahaDashaData, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign || !mahaDashaData) return null;
+    
+    const getHouseLord = (houseNum) => {
+        let houseSign = ascendantSign + houseNum - 1;
+        if (houseSign > 12) houseSign -= 12;
+        return ZODIAC_LORDS[houseSign];
+    };
+    
+    const seventhLord = getHouseLord(7);  // Marriage/Partnerships
+    
+    let parsedData = mahaDashaData;
+    if (mahaDashaData.output && typeof mahaDashaData.output === 'object') {
+        parsedData = mahaDashaData.output;
+    } else if (typeof mahaDashaData === 'string') {
+        try {
+            parsedData = JSON.parse(mahaDashaData);
+            if (parsedData.output) parsedData = parsedData.output;
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    const now = new Date();
+    const relationshipPeriods = [];
+    const relationshipPlanets = [seventhLord, 'Venus'];
+    
+    for (const [mahaDashaPlanet, antarDasas] of Object.entries(parsedData)) {
+        for (const [antarDashaPlanet, period] of Object.entries(antarDasas)) {
+            if (!period.start_time || !period.end_time) continue;
+            
+            let startDate, endDate;
+            try {
+                if (period.start_time.includes(' ')) {
+                    startDate = new Date(period.start_time.replace(' ', 'T'));
+                    endDate = new Date(period.end_time.replace(' ', 'T'));
+                } else {
+                    startDate = new Date(period.start_time);
+                    endDate = new Date(period.end_time);
+                }
+            } catch (e) {
+                continue;
+            }
+            
+            if (endDate < now) continue;
+            
+            let favorabilityScore = 0;
+            let reasons = [];
+            let prediction = 'neutral';
+            
+            // 7th house lord
+            if (mahaDashaPlanet === seventhLord) {
+                favorabilityScore += 45;
+                reasons.push(`${seventhLord} Mahadasha (7th house lord - partnerships/marriage)`);
+            }
+            if (antarDashaPlanet === seventhLord) {
+                favorabilityScore += 40;
+                reasons.push(`${seventhLord} Antar Dasha`);
+            }
+            
+            // Venus (natural significator of relationships)
+            if (mahaDashaPlanet === 'Venus') {
+                favorabilityScore += 40;
+                reasons.push(`Venus Mahadasha (natural significator of love/marriage)`);
+            }
+            if (antarDashaPlanet === 'Venus') {
+                favorabilityScore += 35;
+                reasons.push(`Venus Antar Dasha`);
+            }
+            
+            // Combined 7th lord + Venus
+            if ((mahaDashaPlanet === seventhLord && antarDashaPlanet === 'Venus') ||
+                (mahaDashaPlanet === 'Venus' && antarDashaPlanet === seventhLord)) {
+                favorabilityScore += 20;
+                reasons.push(`7th lord + Venus combination - highly favorable for relationships`);
+            }
+            
+            // Check planet strength and placement
+            const mahaPlanetInfo = planetsData[mahaDashaPlanet];
+            const antarPlanetInfo = planetsData[antarDashaPlanet];
+            
+            if (mahaPlanetInfo) {
+                const shadbala = calculateShadbala(mahaDashaPlanet, mahaPlanetInfo, planetsData, ascendantSign, shadbalaApiData);
+                if (shadbala && shadbala.fromApi) {
+                    // Use Shadbala value and categorize: Strong >= 480, Weak < 350, Moderate 350-479
+                    if (shadbala.shadbala >= 480) {
+                        favorabilityScore += 15;
+                        reasons.push(`Strong ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)})`);
+                    } else if (shadbala.shadbala < 350) {
+                        favorabilityScore -= 20;
+                        reasons.push(`Weak ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)}) may cause relationship troubles`);
+                    }
+                }
+                
+                const house = getRelativeHouseNumber(ascendantSign, mahaPlanetInfo.current_sign);
+                if (house === 7) {
+                    favorabilityScore += 15;
+                    reasons.push(`${mahaDashaPlanet} in 7th house (partnerships)`);
+                }
+            }
+            
+            // Check if Venus is afflicted
+            if (mahaDashaPlanet === 'Venus') {
+                const venusInfo = planetsData['Venus'];
+                if (venusInfo) {
+                    const dignity = calculatePlanetaryDignity('Venus', venusInfo);
+                    if (dignity && dignity.isDebilitated) {
+                        favorabilityScore -= 25;
+                        reasons.push(`Afflicted Venus (debilitated) indicates relationship troubles`);
+                    }
+                    
+                    const combust = isPlanetCombust('Venus', venusInfo, planetsData);
+                    if (combust) {
+                        favorabilityScore -= 20;
+                        reasons.push(`Venus combust - relationship challenges`);
+                    }
+                }
+            }
+            
+            // Benefic planets support relationships
+            if (BENEFIC_PLANETS.includes(mahaDashaPlanet) && mahaDashaPlanet !== 'Venus') {
+                favorabilityScore += 10;
+            }
+            
+            // Malefic planets in 7th house lord position
+            if (MALIFIC_PLANETS.includes(mahaDashaPlanet) && mahaDashaPlanet === seventhLord) {
+                favorabilityScore -= 15;
+                reasons.push(`Malefic as 7th lord may cause relationship difficulties`);
+            }
+            
+            // Determine prediction
+            if (favorabilityScore >= 80) {
+                prediction = 'highly favorable';
+            } else if (favorabilityScore >= 60) {
+                prediction = 'favorable';
+            } else if (favorabilityScore >= 40) {
+                prediction = 'moderate';
+            } else if (favorabilityScore >= 20) {
+                prediction = 'challenging';
+            } else {
+                prediction = 'unfavorable';
+            }
+            
+            if (favorabilityScore >= 30 || relationshipPlanets.includes(mahaDashaPlanet) || relationshipPlanets.includes(antarDashaPlanet)) {
+                relationshipPeriods.push({
+                    mahaDasha: mahaDashaPlanet,
+                    antarDasha: antarDashaPlanet,
+                    startDate: startDate,
+                    endDate: endDate,
+                    startTime: period.start_time,
+                    endTime: period.end_time,
+                    favorabilityScore: favorabilityScore,
+                    prediction: prediction,
+                    reasons: reasons
+                });
+            }
+        }
+    }
+    
+    // Sort by timing (earliest first), then by favorability score (highest first)
+    relationshipPeriods.sort((a, b) => {
+        const dateDiff = a.startDate.getTime() - b.startDate.getTime();
+        if (dateDiff !== 0) return dateDiff; // Sort by date first
+        return b.favorabilityScore - a.favorabilityScore; // Then by score
+    });
+    return {
+        periods: relationshipPeriods.slice(0, 8),
+        seventhLord: seventhLord
+    };
+}
+
+// Generate Money Prediction Section
+function generateMoneyPredictionSection(planetsData, ascendantSign, mahaDashaData, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign || !mahaDashaData) return '';
+    
+    const analysis = analyzeMoneyTiming(planetsData, ascendantSign, mahaDashaData, language, shadbalaApiData);
+    if (!analysis || !analysis.periods || analysis.periods.length === 0) return '';
+    
+    const texts = language === 'hi' ? {
+        title: 'धन/वित्तीय भविष्यवाणी (Money/Financial Prediction)',
+        subtitle: 'अगले दशा काल में धन की संभावनाएं',
+        highlyFavorable: 'अत्यधिक अनुकूल',
+        favorable: 'अनुकूल',
+        moderate: 'मध्यम',
+        challenging: 'चुनौतीपूर्ण',
+        unfavorable: 'अनुकूल नहीं',
+        period: 'अवधि',
+        score: 'अंक',
+        reasons: 'कारण',
+        recommended: 'अनुशंसित',
+        note: 'नोट',
+        noteText: 'धन की भविष्यवाणी 2nd, 10th, और 11th भाव स्वामियों के दशा काल पर आधारित है। बृहस्पति, शुक्र या 10th भाव स्वामी के शुभ गोचर भी आय को बढ़ा सकते हैं।'
+    } : {
+        title: 'Money/Financial Prediction',
+        subtitle: 'Upcoming financial opportunities and fluctuations',
+        highlyFavorable: 'Highly Favorable',
+        favorable: 'Favorable',
+        moderate: 'Moderate',
+        challenging: 'Challenging',
+        unfavorable: 'Unfavorable',
+        period: 'Period',
+        score: 'Score',
+        reasons: 'Reasons',
+        recommended: 'Recommended',
+        note: 'Note',
+        noteText: 'Financial predictions are based on dasha periods of 2nd, 10th, and 11th house lords. Positive transits of Jupiter, Venus, or 10th lord can enhance income opportunities.'
+    };
+    
+    return generatePredictionSectionHTML(analysis, texts, language, 'money');
+}
+
+// Generate Health Prediction Section
+function generateHealthPredictionSection(planetsData, ascendantSign, mahaDashaData, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign || !mahaDashaData) return '';
+    
+    const analysis = analyzeHealthTiming(planetsData, ascendantSign, mahaDashaData, language, shadbalaApiData);
+    if (!analysis || !analysis.periods || analysis.periods.length === 0) return '';
+    
+    const texts = language === 'hi' ? {
+        title: 'स्वास्थ्य भविष्यवाणी (Health Prediction)',
+        subtitle: 'स्वास्थ्य सम्बन्धी चुनौतियाँ और सुधार के अवसर',
+        excellent: 'उत्कृष्ट',
+        good: 'अच्छा',
+        moderate: 'मध्यम',
+        requiresAttention: 'ध्यान आवश्यक',
+        challenging: 'चुनौतीपूर्ण',
+        period: 'अवधि',
+        healthScore: 'स्वास्थ्य स्कोर',
+        reasons: 'कारण',
+        note: 'नोट',
+        noteText: 'स्वास्थ्य भविष्यवाणी 6th, 8th, और 12th भाव स्वामियों के दशा काल पर आधारित है। शनि, राहु या केतु के गोचर इन भावों पर स्वास्थ्य चिंता का कारण बन सकते हैं। बृहस्पति का शुभ गोचर स्वास्थ्य में सुधार ला सकता है।'
+    } : {
+        title: 'Health Prediction',
+        subtitle: 'Health challenges and recovery opportunities',
+        excellent: 'Excellent',
+        good: 'Good',
+        moderate: 'Moderate',
+        requiresAttention: 'Requires Attention',
+        challenging: 'Challenging',
+        period: 'Period',
+        healthScore: 'Health Score',
+        reasons: 'Reasons',
+        note: 'Note',
+        noteText: 'Health predictions are based on dasha periods of 6th, 8th, and 12th house lords. Transits of Saturn, Rahu, or Ketu over these houses may trigger health concerns. Positive Jupiter transits can improve health.'
+    };
+    
+    return generatePredictionSectionHTML(analysis, texts, language, 'health');
+}
+
+// Generate Relationship Prediction Section
+function generateRelationshipPredictionSection(planetsData, ascendantSign, mahaDashaData, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign || !mahaDashaData) return '';
+    
+    const analysis = analyzeRelationshipTiming(planetsData, ascendantSign, mahaDashaData, language, shadbalaApiData);
+    if (!analysis || !analysis.periods || analysis.periods.length === 0) return '';
+    
+    const texts = language === 'hi' ? {
+        title: 'संबंध/विवाह भविष्यवाणी (Relationship/Marriage Prediction)',
+        subtitle: 'संबंधों और विवाह के लिए अनुकूल अवधि',
+        highlyFavorable: 'अत्यधिक अनुकूल',
+        favorable: 'अनुकूल',
+        moderate: 'मध्यम',
+        challenging: 'चुनौतीपूर्ण',
+        unfavorable: 'अनुकूल नहीं',
+        period: 'अवधि',
+        score: 'अंक',
+        reasons: 'कारण',
+        recommended: 'अनुशंसित',
+        note: 'नोट',
+        noteText: 'संबंध भविष्यवाणी 7th भाव स्वामी और शुक्र के दशा काल पर आधारित है। शुक्र या 7th भाव पर शुभ गोचर सामंजस्य और मिलन का समर्थन करते हैं। अशुभ शुक्र या अशुभ गोचर संबंधों में समस्याएं संकेत कर सकते हैं।'
+    } : {
+        title: 'Relationship/Marriage Prediction',
+        subtitle: 'Favorable periods for relationships and marriage',
+        highlyFavorable: 'Highly Favorable',
+        favorable: 'Favorable',
+        moderate: 'Moderate',
+        challenging: 'Challenging',
+        unfavorable: 'Unfavorable',
+        period: 'Period',
+        score: 'Score',
+        reasons: 'Reasons',
+        recommended: 'Recommended',
+        note: 'Note',
+        noteText: 'Relationship predictions are based on dasha periods of 7th house lord and Venus. Benefic transits over Venus or 7th house support harmony and union. Afflicted Venus or malefic transits may indicate relationship troubles.'
+    };
+    
+    return generatePredictionSectionHTML(analysis, texts, language, 'relationship');
+}
+
+// Generic function to generate prediction section HTML
+function generatePredictionSectionHTML(analysis, texts, language, type) {
+    const getCategoryColor = (category) => {
+        if (type === 'health') {
+            switch(category) {
+                case 'excellent': return '#2e7d32';
+                case 'good': return '#388e3c';
+                case 'moderate': return '#f57c00';
+                case 'requires attention': return '#e65100';
+                case 'challenging': return '#d32f2f';
+                default: return '#666';
+            }
+        } else {
+            switch(category) {
+                case 'highly favorable': return '#2e7d32';
+                case 'favorable': return '#388e3c';
+                case 'moderate': return '#f57c00';
+                case 'challenging': return '#d32f2f';
+                case 'unfavorable': return '#c62828';
+                default: return '#666';
+            }
+        }
+    };
+    
+    const formatDate = (dateStr) => {
+        try {
+            let date;
+            if (dateStr.includes(' ')) {
+                date = new Date(dateStr.replace(' ', 'T'));
+            } else {
+                date = new Date(dateStr);
+            }
+            return date.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    };
+    
+    let periodsHTML = '';
+    analysis.periods.forEach((period, index) => {
+        const mahaDashaName = PLANET_NAMES[language] && PLANET_NAMES[language][period.mahaDasha]
+            ? PLANET_NAMES[language][period.mahaDasha]
+            : period.mahaDasha;
+        const antarDashaName = PLANET_NAMES[language] && PLANET_NAMES[language][period.antarDasha]
+            ? PLANET_NAMES[language][period.antarDasha]
+            : period.antarDasha;
+        
+        const categoryColor = getCategoryColor(period.prediction);
+        const isRecommended = type === 'health' 
+            ? (period.healthScore >= 70 || period.prediction === 'excellent' || period.prediction === 'good')
+            : period.favorabilityScore >= 70;
+        
+        const score = type === 'health' ? period.healthScore : period.favorabilityScore;
+        const scoreLabel = type === 'health' ? texts.healthScore : texts.score;
+        
+        periodsHTML += `
+            <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${categoryColor}; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                ${isRecommended ? `<div style="background: #ffd700; color: #8b5a00; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px; font-weight: 600; font-size: 13px;">⭐ ${texts.recommended || 'Recommended'}</div>` : ''}
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                    <div>
+                        <h3 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 18px;">
+                            ${index + 1}. ${mahaDashaName} - ${antarDashaName}
+                        </h3>
+                        <div style="font-size: 14px; color: #666; margin-bottom: 8px;">
+                            <strong>${texts.period}:</strong> ${formatDate(period.startTime)} - ${formatDate(period.endTime)}
+                        </div>
+                        <div style="display: inline-block; background: ${categoryColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: capitalize;">
+                            ${texts[period.prediction] || period.prediction}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 24px; font-weight: bold; color: ${categoryColor};">
+                            ${score}
+                        </div>
+                        <div style="font-size: 11px; color: #666; text-transform: uppercase;">
+                            ${scoreLabel}
+                        </div>
+                    </div>
+                </div>
+                ${period.reasons && period.reasons.length > 0 ? `
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                        <div style="font-size: 13px; font-weight: 600; color: #555; margin-bottom: 8px;">${texts.reasons}:</div>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #666; line-height: 1.6;">
+                            ${period.reasons.map(reason => `<li style="margin-bottom: 4px;">${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    const sectionId = type === 'money' ? 'money-prediction' : type === 'health' ? 'health-prediction' : 'relationship-prediction';
+    return `
+    <div class="prediction-section article-section" id="${sectionId}">
+        <h1 style="color: #1a1a1a; margin-bottom: 10px; font-size: 28px; margin-top: 0;">${texts.title}</h1>
+        <p style="color: #666; margin-bottom: 30px; font-size: 15px;">${texts.subtitle}</p>
+        
+        ${periodsHTML}
+        
+        <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-top: 30px; border-radius: 4px;">
+            <p style="margin: 0; color: #1565c0; font-size: 14px; line-height: 1.6;">
+                <strong>${texts.note}:</strong> ${texts.noteText}
+            </p>
+        </div>
+    </div>
+    `;
+}
+
+// Planet themes and meanings for Dasa predictions
+const PLANET_THEMES = {
+    'Sun': {
+        themes: 'Leadership, authority, ego, father, government, royalty, fame, vitality',
+        career: 'Government positions, leadership roles, administrative work, public service',
+        finance: 'Gains through authority, inheritance, government benefits',
+        health: 'Heart, eyes, bones, vitality, fever-related issues',
+        relationships: 'Relationship with father, authority figures, partnerships with superiors'
+    },
+    'Moon': {
+        themes: 'Emotions, mind, mother, public, intuition, creativity, comfort, peace',
+        career: 'Public relations, hospitality, nursing, creative fields, water-related businesses',
+        finance: 'Gains through public appeal, emotions, maternal inheritance',
+        health: 'Mental health, digestive system, emotional balance, water retention',
+        relationships: 'Mother, family bonds, emotional connections, marriage timing'
+    },
+    'Mars': {
+        themes: 'Energy, courage, aggression, siblings, land, property, surgery, fire',
+        career: 'Engineering, military, police, sports, surgery, real estate, fire-related work',
+        finance: 'Gains through land, property, construction, energy-driven activities',
+        health: 'Accidents, injuries, blood issues, inflammation, surgical interventions',
+        relationships: 'Siblings, competitive partnerships, conflicts, assertive partners'
+    },
+    'Mercury': {
+        themes: 'Intellect, communication, business, learning, adaptability, speech, trade',
+        career: 'Business, trading, communication, writing, teaching, analysis, technology',
+        finance: 'Gains through business, communication, trading, intellectual property',
+        health: 'Nervous system, speech disorders, skin issues, mental stress',
+        relationships: 'Communication in relationships, business partnerships, siblings'
+    },
+    'Jupiter': {
+        themes: 'Wisdom, knowledge, teacher, guru, expansion, spirituality, children, fortune',
+        career: 'Teaching, counseling, law, finance, spiritual work, advisory roles',
+        finance: 'Fortune, gains through knowledge, teaching, children, spirituality',
+        health: 'Liver, fat-related issues, diabetes, wisdom-related health',
+        relationships: 'Guru, teachers, children, harmonious partnerships, marriage blessings'
+    },
+    'Venus': {
+        themes: 'Love, beauty, luxury, arts, creativity, marriage, finances, comfort',
+        career: 'Arts, entertainment, beauty industry, luxury goods, finance, fashion',
+        finance: 'Gains through arts, beauty, relationships, luxury items, marriage',
+        health: 'Reproductive system, urinary tract, diabetes, beauty-related health',
+        relationships: 'Marriage, love, partnerships, romantic relationships, spouse'
+    },
+    'Saturn': {
+        themes: 'Discipline, hard work, delays, longevity, karma, service, restrictions',
+        career: 'Service-oriented work, labor, construction, agriculture, delays in career',
+        finance: 'Gains through hard work, delayed but steady, savings, discipline',
+        health: 'Chronic diseases, bones, joints, teeth, longevity, slow recovery',
+        relationships: 'Delays in marriage, older partners, service-oriented relationships'
+    },
+    'Rahu': {
+        themes: 'Desires, illusions, foreign connections, technology, sudden gains, obsessions',
+        career: 'Technology, foreign connections, research, unexpected career changes',
+        finance: 'Sudden gains, foreign income, speculative gains, unexpected wealth',
+        health: 'Mental illusions, addictions, skin diseases, nervous disorders',
+        relationships: 'Unconventional relationships, foreign connections, sudden partnerships'
+    },
+    'Ketu': {
+        themes: 'Spirituality, detachment, isolation, past karma, research, intuition',
+        career: 'Research, spirituality, isolation, technical work, detachment from career',
+        finance: 'Gains through spirituality, research, unexpected losses or gains',
+        health: 'Isolation, mysterious diseases, mental detachment, past karma',
+        relationships: 'Detachment in relationships, spiritual partnerships, isolation'
+    }
+};
+
+// Helper function to get planet placement info
+function getPlanetPlacementInfo(planet, planetsData, ascendantSign, shadbalaApiData) {
+    if (!planetsData || !planetsData[planet]) return null;
+    
+    const planetInfo = planetsData[planet];
+    const sign = planetInfo.current_sign;
+    const house = getRelativeHouseNumber(ascendantSign, sign);
+    const isRetro = planetInfo.isRetro === 'true' || planetInfo.isRetro === true;
+    
+    // Get Shadbala if available
+    let shadbala = null;
+    if (shadbalaApiData) {
+        const planetShadbala = calculateShadbala(planet, planetInfo, planetsData, ascendantSign, shadbalaApiData);
+        if (planetShadbala && planetShadbala.fromApi) {
+            shadbala = {
+                value: planetShadbala.shadbala,
+                category: planetShadbala.shadbala >= 480 ? 'Strong' : (planetShadbala.shadbala < 350 ? 'Weak' : 'Moderate')
+            };
+        }
+    }
+    
+    return { sign, house, isRetro, shadbala };
+}
+
+// Dasa Predictions Analysis - Stepwise approach
+function analyzeDasaPredictions(dasaInfo, planetsData, ascendantSign, language = 'en', shadbalaApiData = null) {
+    if (!dasaInfo || !planetsData || !ascendantSign) return null;
+    
+    // Get house lords
+    const getHouseLord = (houseNum) => {
+        let houseSign = ascendantSign + houseNum - 1;
+        if (houseSign > 12) houseSign -= 12;
+        return ZODIAC_LORDS[houseSign];
+    };
+    
+    const secondLord = getHouseLord(2);  // Finance
+    const sixthLord = getHouseLord(6);   // Job
+    const seventhLord = getHouseLord(7); // Relationships
+    const tenthLord = getHouseLord(10);  // Career
+    const eleventhLord = getHouseLord(11); // Gains
+    const ascendantLord = getHouseLord(1);
+    
+    // Extract Dasa information with dates
+    const mahaDasaInfo = dasaInfo.maha_dasa;
+    const antarDasaInfo = dasaInfo.antar_dasa;
+    const pratyantarDasaInfo = dasaInfo.pratyantar_dasa;
+    const sookshmaDasaInfo = dasaInfo.sookshma_antar_dasa;
+    
+    const mahaDasa = mahaDasaInfo?.Lord;
+    const antarDasa = antarDasaInfo?.Lord;
+    const pratyantarDasa = pratyantarDasaInfo?.Lord;
+    const sookshmaDasa = sookshmaDasaInfo?.Lord;
+    
+    // Get planet themes
+    const mahaThemes = PLANET_THEMES[mahaDasa] || {};
+    const antarThemes = PLANET_THEMES[antarDasa] || {};
+    const pratyantarThemes = PLANET_THEMES[pratyantarDasa] || {};
+    const sookshmaThemes = PLANET_THEMES[sookshmaDasa] || {};
+    
+    // Get planet placement info
+    const mahaPlacement = getPlanetPlacementInfo(mahaDasa, planetsData, ascendantSign, shadbalaApiData);
+    const antarPlacement = getPlanetPlacementInfo(antarDasa, planetsData, ascendantSign, shadbalaApiData);
+    
+    // Calculate duration helper
+    const calculateDuration = (startTime, endTime) => {
+        try {
+            const start = new Date(startTime.replace(' ', 'T'));
+            const end = new Date(endTime.replace(' ', 'T'));
+            const diffMs = end - start;
+            const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+            const diffMonths = diffMs / (1000 * 60 * 60 * 24 * 30);
+            const diffDays = diffMs / (1000 * 60 * 60 * 24);
+            
+            if (diffYears >= 1) {
+                return `${diffYears.toFixed(1)} years`;
+            } else if (diffMonths >= 1) {
+                return `${diffMonths.toFixed(1)} months`;
+            } else {
+                return `${diffDays.toFixed(0)} days`;
+            }
+        } catch (e) {
+            return 'N/A';
+        }
+    };
+    
+    // Get remedies helper
+    const getRemedies = (planet) => {
+        const remedies = {
+            'Sun': 'Worship Sun God, donate copper, avoid conflicts with authority',
+            'Moon': 'Worship Moon, maintain emotional balance, avoid excessive water activities',
+            'Mars': 'Worship Hanuman, avoid conflicts, be careful with fire and sharp objects',
+            'Mercury': 'Worship Lord Vishnu, practice communication skills, avoid nervous stress',
+            'Jupiter': 'Worship Guru, donate yellow items, seek knowledge and wisdom',
+            'Venus': 'Worship Goddess Lakshmi, maintain harmony in relationships, enjoy arts',
+            'Saturn': 'Worship Shani Dev, practice discipline, help others, accept delays patiently',
+            'Rahu': 'Worship Rahu, practice detachment, avoid addictions, be cautious of illusions',
+            'Ketu': 'Worship Lord Ganesha, practice spirituality, research, accept detachment'
+        };
+        return remedies[planet] || 'Practice meditation and maintain positive attitude';
+    };
+    
+    // Helper to analyze aspect relevance
+    const analyzeAspect = (planet, houseLords) => {
+        const isFinanceLord = planet === houseLords.secondLord || planet === houseLords.tenthLord || planet === houseLords.eleventhLord;
+        const isJobLord = planet === houseLords.sixthLord || planet === houseLords.tenthLord || planet === houseLords.eleventhLord || planet === houseLords.ascendantLord;
+        const isRelationLord = planet === houseLords.seventhLord || planet === 'Venus';
+        return { isFinanceLord, isJobLord, isRelationLord };
+    };
+    
+    const houseLords = { secondLord, sixthLord, seventhLord, tenthLord, eleventhLord, ascendantLord };
+    const mahaAspect = analyzeAspect(mahaDasa, houseLords);
+    const antarAspect = analyzeAspect(antarDasa, houseLords);
+    const pratyantarAspect = analyzeAspect(pratyantarDasa, houseLords);
+    const sookshmaAspect = analyzeAspect(sookshmaDasa, houseLords);
+    
+    // Step 1-4: Collect stepwise information
+    const steps = {
+        step1: {
+            dasa: 'Maha Dasa',
+            planet: mahaDasa,
+            duration: calculateDuration(mahaDasaInfo?.start_time, mahaDasaInfo?.end_time),
+            themes: mahaThemes.themes || '',
+            career: mahaThemes.career || '',
+            finance: mahaThemes.finance || '',
+            health: mahaThemes.health || '',
+            relationships: mahaThemes.relationships || '',
+            placement: mahaPlacement,
+            isHouseLord: mahaAspect.isFinanceLord || mahaAspect.isJobLord || mahaAspect.isRelationLord,
+            startTime: mahaDasaInfo?.start_time,
+            endTime: mahaDasaInfo?.end_time
+        },
+        step2: {
+            dasa: 'Antar Dasa',
+            planet: antarDasa,
+            duration: calculateDuration(antarDasaInfo?.start_time, antarDasaInfo?.end_time),
+            themes: antarThemes.themes || '',
+            career: antarThemes.career || '',
+            finance: antarThemes.finance || '',
+            health: antarThemes.health || '',
+            relationships: antarThemes.relationships || '',
+            placement: antarPlacement,
+            isHouseLord: antarAspect.isFinanceLord || antarAspect.isJobLord || antarAspect.isRelationLord,
+            startTime: antarDasaInfo?.start_time,
+            endTime: antarDasaInfo?.end_time
+        },
+        step3: {
+            dasa: 'Pratyantar Dasa',
+            planet: pratyantarDasa,
+            duration: calculateDuration(pratyantarDasaInfo?.start_time, pratyantarDasaInfo?.end_time),
+            themes: pratyantarThemes.themes || '',
+            isHouseLord: pratyantarAspect.isFinanceLord || pratyantarAspect.isJobLord || pratyantarAspect.isRelationLord,
+            startTime: pratyantarDasaInfo?.start_time,
+            endTime: pratyantarDasaInfo?.end_time
+        },
+        step4: {
+            dasa: 'Sookshma Dasa',
+            planet: sookshmaDasa,
+            duration: calculateDuration(sookshmaDasaInfo?.start_time, sookshmaDasaInfo?.end_time),
+            themes: sookshmaThemes.themes || '',
+            isHouseLord: sookshmaAspect.isFinanceLord || sookshmaAspect.isJobLord || sookshmaAspect.isRelationLord,
+            startTime: sookshmaDasaInfo?.start_time,
+            endTime: sookshmaDasaInfo?.end_time
+        }
+    };
+    
+    // Step 5: Synthesize predictions
+    let financeScore = 50, jobScore = 50, relationshipScore = 50;
+    const financeInsights = [], jobInsights = [], relationshipInsights = [];
+    
+    // Finance synthesis
+    if (mahaAspect.isFinanceLord) {
+        financeScore += 30;
+        financeInsights.push(`Maha Dasa of ${mahaDasa} (${mahaDasa === secondLord ? '2nd' : mahaDasa === tenthLord ? '10th' : '11th'} house lord) enhances financial opportunities`);
+    } else if (mahaDasa === 'Jupiter' || mahaDasa === 'Venus') {
+        financeScore += 20;
+        financeInsights.push(`Maha Dasa of ${mahaDasa} brings financial fortune through ${mahaThemes.finance || 'benefic influences'}`);
+    }
+    if (antarAspect.isFinanceLord) {
+        financeScore += 25;
+        financeInsights.push(`Antar Dasa of ${antarDasa} activates financial gains from ${antarThemes.finance || 'business activities'}`);
+    }
+    if (sookshmaAspect.isFinanceLord) {
+        financeScore += 20;
+        financeInsights.push(`Optimal timing for financial actions during Sookshma Dasa of ${sookshmaDasa}`);
+    }
+    
+    // Job synthesis
+    if (mahaAspect.isJobLord) {
+        jobScore += 30;
+        jobInsights.push(`Maha Dasa of ${mahaDasa} (${mahaDasa === ascendantLord ? 'Ascendant' : mahaDasa === sixthLord ? '6th' : mahaDasa === tenthLord ? '10th' : '11th'} house lord) suggests career growth`);
+    } else {
+        jobInsights.push(`Maha Dasa of ${mahaDasa} focuses on ${mahaThemes.career || 'general career themes'}`);
+    }
+    if (antarAspect.isJobLord) {
+        jobScore += 25;
+        jobInsights.push(`Antar Dasa of ${antarDasa} activates job opportunities in ${antarThemes.career || 'related fields'}`);
+    }
+    if (sookshmaAspect.isJobLord) {
+        jobScore += 20;
+        jobInsights.push(`Ideal period for job interviews, negotiations, or career moves during Sookshma Dasa of ${sookshmaDasa}`);
+    }
+    
+    // Relationship synthesis
+    if (mahaAspect.isRelationLord) {
+        relationshipScore += 30;
+        relationshipInsights.push(`Maha Dasa of ${mahaDasa} (${mahaDasa === seventhLord ? '7th house lord' : 'Venus'}) marks important relationship phases`);
+    } else if (mahaDasa === 'Jupiter') {
+        relationshipScore += 20;
+        relationshipInsights.push(`Maha Dasa of Jupiter brings harmony and blessings in relationships`);
+    }
+    if (antarAspect.isRelationLord) {
+        relationshipScore += 25;
+        relationshipInsights.push(`Antar Dasa of ${antarDasa} activates relationship developments`);
+    }
+    if (pratyantarDasa === 'Moon') {
+        relationshipScore += 10;
+        relationshipInsights.push(`Pratyantar Dasa of Moon requires emotional balance in relationships`);
+    }
+    
+    const financePrediction = financeScore >= 75 ? 'highly favorable' : (financeScore >= 60 ? 'favorable' : (financeScore < 40 ? 'challenging' : 'moderate'));
+    const jobPrediction = jobScore >= 75 ? 'highly favorable' : (jobScore >= 60 ? 'favorable' : (jobScore < 40 ? 'challenging' : 'moderate'));
+    const relationshipPrediction = relationshipScore >= 75 ? 'highly favorable' : (relationshipScore >= 60 ? 'favorable' : (relationshipScore < 40 ? 'challenging' : 'moderate'));
+    
+    return {
+        steps: steps,
+        synthesis: {
+            finance: { score: Math.max(0, Math.min(100, financeScore)), prediction: financePrediction, insights: financeInsights },
+            job: { score: Math.max(0, Math.min(100, jobScore)), prediction: jobPrediction, insights: jobInsights },
+            relationship: { score: Math.max(0, Math.min(100, relationshipScore)), prediction: relationshipPrediction, insights: relationshipInsights }
+        },
+        remedies: {
+            mahaDasa: getRemedies(mahaDasa),
+            antarDasa: getRemedies(antarDasa),
+            pratyantarDasa: getRemedies(pratyantarDasa),
+            sookshmaDasa: getRemedies(sookshmaDasa)
+        },
+        houseLords: houseLords,
+        dasaInfo: { mahaDasa, antarDasa, pratyantarDasa, sookshmaDasa }
+    };
+}
+
+// Generate Dasa Predictions Section with date picker
+function generateDasaPredictionsSection(planetsData, ascendantSign, language = 'en', shadbalaApiData = null) {
+    if (!planetsData || !ascendantSign) return '';
+    
+    const texts = language === 'hi' ? {
+        title: 'दशा भविष्यवाणी (Dasa Predictions)',
+        subtitle: 'वित्त, नौकरी और संबंधों के लिए दशा-आधारित भविष्यवाणी',
+        selectDate: 'तारीख चुनें',
+        getPredictions: 'भविष्यवाणी प्राप्त करें',
+        loading: 'लोड हो रहा है...',
+        finance: 'वित्त (Finance)',
+        job: 'नौकरी/करियर (Job/Career)',
+        relationship: 'संबंध (Relationships)',
+        mahaDasa: 'महादशा',
+        antarDasa: 'अंतरदशा',
+        pratyantarDasa: 'प्रत्यंतर दशा',
+        sookshmaDasa: 'सूक्ष्म दशा',
+        highlyFavorable: 'अत्यधिक अनुकूल',
+        favorable: 'अनुकूल',
+        moderate: 'मध्यम',
+        challenging: 'चुनौतीपूर्ण',
+        reasons: 'कारण',
+        note: 'नोट',
+        noteText: 'भविष्यवाणियाँ चुने गए तारीख पर चल रहे दशा काल पर आधारित हैं।'
+    } : {
+        title: 'Dasa Predictions',
+        subtitle: 'Predictions for Finance, Job, and Relationships based on Dasa periods',
+        selectDate: 'Select Date & Time',
+        getPredictions: 'Get Predictions',
+        loading: 'Loading...',
+        finance: 'Finance',
+        job: 'Job/Career',
+        relationship: 'Relationships',
+        mahaDasa: 'Maha Dasa',
+        antarDasa: 'Antar Dasa',
+        pratyantarDasa: 'Pratyantar Dasa',
+        sookshmaDasa: 'Sookshma Dasa',
+        highlyFavorable: 'Highly Favorable',
+        favorable: 'Favorable',
+        moderate: 'Moderate',
+        challenging: 'Challenging',
+        reasons: 'Reasons',
+        note: 'Note',
+        noteText: 'Predictions are based on the Dasa periods running on the selected date.'
+    };
+    
+    // Get current date/time as default
+    const now = new Date();
+    const defaultDate = now.toISOString().slice(0, 16);
+    
+    return `
+    <div class="dasa-predictions-section article-section" id="dasa-predictions">
+        <h1 style="color: #1a1a1a; margin-bottom: 10px; font-size: 28px; margin-top: 0;">${texts.title}</h1>
+        <p style="color: #666; margin-bottom: 30px; font-size: 15px;">${texts.subtitle}</p>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">${texts.selectDate}:</label>
+            <input type="datetime-local" id="dasaDatePicker" value="${defaultDate}" style="padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%; max-width: 300px; margin-bottom: 15px;">
+            <button id="getDasaPredictionsBtn" style="background: #1a1a1a; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                ${texts.getPredictions}
+            </button>
+        </div>
+        
+        <div id="dasaPredictionsResult" style="display: none;" data-loading-text="${texts.loading}" data-button-text="${texts.getPredictions}"></div>
+        
+        <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-top: 30px; border-radius: 4px;">
+            <p style="margin: 0; color: #1565c0; font-size: 14px; line-height: 1.6;">
+                <strong>${texts.note}:</strong> ${texts.noteText}
+            </p>
+        </div>
+    </div>
+    `;
+}
+
+// Initialize Dasa Predictions date picker handler
+window.initializeDasaPredictionsHandler = function() {
+    const btn = document.getElementById('getDasaPredictionsBtn');
+    if (!btn) return;
+    
+    btn.addEventListener('click', async function() {
+        const datePicker = document.getElementById('dasaDatePicker');
+        const resultDiv = document.getElementById('dasaPredictionsResult');
+        if (!datePicker || !resultDiv) return;
+        
+        // Get selected date/time
+        const selectedDateTime = new Date(datePicker.value);
+        if (isNaN(selectedDateTime.getTime())) {
+            alert('Please select a valid date and time');
+            return;
+        }
+        
+        // Show loading
+        btn.disabled = true;
+        btn.textContent = resultDiv.getAttribute('data-loading-text') || 'Loading...';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner" style="margin: 0 auto 20px;"></div><p>Fetching Dasa information...</p></div>';
+        
+        try {
+            const { planetsData, ascendantSign, shadbalaApiData, language, apiDataForRequests } = window.kundliTabData;
+            
+            if (!apiDataForRequests) {
+                throw new Error('Birth data not available');
+            }
+            
+            // Prepare event date for API
+            const eventDate = {
+                year: selectedDateTime.getFullYear(),
+                month: selectedDateTime.getMonth() + 1,
+                date: selectedDateTime.getDate(),
+                hours: selectedDateTime.getHours(),
+                minutes: selectedDateTime.getMinutes(),
+                seconds: selectedDateTime.getSeconds()
+            };
+            
+            // Fetch Dasa information
+            const dasaInfo = await fetchDasaInformation(apiDataForRequests, eventDate);
+            
+            if (!dasaInfo) {
+                throw new Error('Failed to fetch Dasa information');
+            }
+            
+            // Analyze predictions
+            const analysis = analyzeDasaPredictions(dasaInfo, planetsData, ascendantSign, language, shadbalaApiData);
+            
+            if (!analysis) {
+                throw new Error('Failed to analyze Dasa predictions');
+            }
+            
+            // Display predictions
+            resultDiv.innerHTML = renderDasaPredictions(dasaInfo, analysis, language);
+            
+        } catch (error) {
+            console.error('Error getting Dasa predictions:', error);
+            resultDiv.innerHTML = `<div style="padding: 20px; color: #f44336;">Error: ${error.message}. Please try again.</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = resultDiv.getAttribute('data-button-text') || 'Get Predictions';
+        }
+    });
+}
+
+// Render Dasa Predictions HTML - Stepwise Approach
+function renderDasaPredictions(dasaInfo, analysis, language) {
+    if (!analysis || !analysis.steps) {
+        return '<div style="padding: 20px; color: #f44336;">Error: Analysis data not available</div>';
+    }
+    
+    const texts = language === 'hi' ? {
+        step1: 'चरण 1: महादशा थीम को समझें',
+        step2: 'चरण 2: महादशा के भीतर अंतरदशा का विश्लेषण करें',
+        step3: 'चरण 3: अंतरदशा के भीतर प्रत्यंतर दशा पर ध्यान दें',
+        step4: 'चरण 4: प्रत्यंतर दशा के भीतर सूक्ष्म दशा में ज़ूम करें',
+        step5: 'चरण 5: संश्लेषण और भविष्यवाणी',
+        step6: 'चरण 6: उपचार और सावधानियाँ लें',
+        duration: 'अवधि',
+        themes: 'थीम',
+        represents: 'प्रतिनिधित्व करता है',
+        expect: 'अपेक्षा करें',
+        focusOn: 'ध्यान दें',
+        watchFor: 'ध्यान रखें',
+        finance: 'वित्त',
+        job: 'नौकरी/करियर',
+        relationship: 'संबंध',
+        synthesis: 'संश्लेषण',
+        predictions: 'भविष्यवाणियाँ',
+        remedies: 'उपचार',
+        precautions: 'सावधानियाँ',
+        highlyFavorable: 'अत्यधिक अनुकूल',
+        favorable: 'अनुकूल',
+        moderate: 'मध्यम',
+        challenging: 'चुनौतीपूर्ण'
+    } : {
+        step1: 'Step 1: Understand Maha Dasa Themes',
+        step2: 'Step 2: Analyze Antar Dasa Within Maha Dasa',
+        step3: 'Step 3: Focus on Pratyantar Dasa Within Antar Dasa',
+        step4: 'Step 4: Zoom into Sookshma Dasa Within Pratyantar Dasa',
+        step5: 'Step 5: Synthesize and Predict',
+        step6: 'Step 6: Take Remedies and Precautions',
+        duration: 'Duration',
+        themes: 'Themes',
+        represents: 'represents',
+        expect: 'Expect',
+        focusOn: 'Focus on',
+        watchFor: 'Watch for',
+        finance: 'Finance',
+        job: 'Job/Career',
+        relationship: 'Relationships',
+        synthesis: 'Synthesis',
+        predictions: 'Predictions',
+        remedies: 'Remedies',
+        precautions: 'Precautions',
+        highlyFavorable: 'Highly Favorable',
+        favorable: 'Favorable',
+        moderate: 'Moderate',
+        challenging: 'Challenging'
+    };
+    
+    const formatDate = (dateStr) => {
+        try {
+            const date = new Date(dateStr.replace(' ', 'T'));
+            return date.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
+                year: 'numeric', month: 'long', day: 'numeric'
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    };
+    
+    const getPlanetName = (planet) => {
+        return PLANET_NAMES[language] && PLANET_NAMES[language][planet] ? PLANET_NAMES[language][planet] : planet;
+    };
+    
+    const getCategoryColor = (prediction) => {
+        if (prediction === 'highly favorable') return '#4caf50';
+        if (prediction === 'favorable') return '#8bc34a';
+        if (prediction === 'moderate') return '#ff9800';
+        return '#f44336';
+    };
+    
+    const steps = analysis.steps;
+    const synthesis = analysis.synthesis;
+    const remedies = analysis.remedies;
+    
+    let html = '<div style="margin-top: 30px;">';
+    
+    // Step 1: Maha Dasa
+    const step1 = steps.step1;
+    html += `
+        <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #d4af37;">
+            <h2 style="color: #1a1a1a; margin: 0 0 15px 0; font-size: 20px; font-weight: 600;">${texts.step1}</h2>
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #333; font-size: 16px;">${getPlanetName(step1.planet)} ${texts.represents}</strong> ${step1.themes}
+            </div>
+            <div style="margin-bottom: 10px; color: #666;">
+                <strong>${texts.duration}:</strong> ${step1.duration} (${formatDate(step1.startTime)} - ${formatDate(step1.endTime)})
+            </div>
+            <div style="margin-top: 15px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <div style="margin-bottom: 8px;"><strong>Career:</strong> ${step1.career || 'General career themes'}</div>
+                <div style="margin-bottom: 8px;"><strong>Finance:</strong> ${step1.finance || 'Financial aspects'}</div>
+                <div style="margin-bottom: 8px;"><strong>Health:</strong> ${step1.health || 'Health considerations'}</div>
+                <div><strong>Relationships:</strong> ${step1.relationships || 'Relationship aspects'}</div>
+            </div>
+        </div>
+    `;
+    
+    // Step 2: Antar Dasa
+    const step2 = steps.step2;
+    html += `
+        <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #2196f3;">
+            <h2 style="color: #1a1a1a; margin: 0 0 15px 0; font-size: 20px; font-weight: 600;">${texts.step2}</h2>
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #333; font-size: 16px;">${getPlanetName(step2.planet)} ${texts.represents}</strong> ${step2.themes}
+            </div>
+            <div style="margin-bottom: 10px; color: #666;">
+                <strong>${texts.duration}:</strong> ${step2.duration} (${formatDate(step2.startTime)} - ${formatDate(step2.endTime)})
+            </div>
+            <div style="margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 5px;">
+                <div style="margin-bottom: 8px;"><strong>${texts.focusOn}:</strong> ${step2.finance || step2.career || 'Activities related to this planet'}</div>
+                <div><strong>${texts.expect}:</strong> Gains from ${step2.career ? step2.career.toLowerCase() : 'related activities'}</div>
+            </div>
+        </div>
+    `;
+    
+    // Step 3: Pratyantar Dasa
+    const step3 = steps.step3;
+    html += `
+        <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #9c27b0;">
+            <h2 style="color: #1a1a1a; margin: 0 0 15px 0; font-size: 20px; font-weight: 600;">${texts.step3}</h2>
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #333; font-size: 16px;">${getPlanetName(step3.planet)} ${texts.represents}</strong> ${step3.themes}
+            </div>
+            <div style="margin-bottom: 10px; color: #666;">
+                <strong>${texts.duration}:</strong> ${step3.duration} (${formatDate(step3.startTime)} - ${formatDate(step3.endTime)})
+            </div>
+            <div style="margin-top: 15px; padding: 15px; background: #f3e5f5; border-radius: 5px;">
+                <div><strong>${texts.watchFor}:</strong> Short-term impacts on work life, relationships, and emotional balance</div>
+            </div>
+        </div>
+    `;
+    
+    // Step 4: Sookshma Dasa
+    const step4 = steps.step4;
+    html += `
+        <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #ff9800;">
+            <h2 style="color: #1a1a1a; margin: 0 0 15px 0; font-size: 20px; font-weight: 600;">${texts.step4}</h2>
+            <div style="margin-bottom: 15px;">
+                <strong style="color: #333; font-size: 16px;">${getPlanetName(step4.planet)} ${texts.represents}</strong> ${step4.themes}
+            </div>
+            <div style="margin-bottom: 10px; color: #666;">
+                <strong>${texts.duration}:</strong> ${step4.duration} (${formatDate(step4.startTime)} - ${formatDate(step4.endTime)})
+            </div>
+            <div style="margin-top: 15px; padding: 15px; background: #fff3e0; border-radius: 5px;">
+                <div><strong>${texts.focusOn}:</strong> Ideal time for ${step4.isHouseLord ? 'important actions' : 'communication, decisions, and planning'}</div>
+            </div>
+        </div>
+    `;
+    
+    // Step 5: Synthesize and Predict
+    html += `
+        <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #4caf50;">
+            <h2 style="color: #1a1a1a; margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">${texts.step5}</h2>
+    `;
+    
+    // Finance
+    if (synthesis.finance) {
+        const finance = synthesis.finance;
+        const financeColor = getCategoryColor(finance.prediction);
+        html += `
+            <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <h3 style="margin: 0 0 10px 0; color: #1a1a1a; font-size: 16px;">${texts.finance}</h3>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                    <span style="background: ${financeColor}; color: white; padding: 5px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                        ${texts[finance.prediction] || finance.prediction}
+                    </span>
+                    <span style="font-size: 18px; font-weight: bold; color: ${financeColor};">Score: ${finance.score}</span>
+                </div>
+                ${finance.insights && finance.insights.length > 0 ? `
+                    <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #666; line-height: 1.6;">
+                        ${finance.insights.map(i => `<li style="margin-bottom: 5px;">${i}</li>`).join('')}
+                    </ul>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // Job
+    if (synthesis.job) {
+        const job = synthesis.job;
+        const jobColor = getCategoryColor(job.prediction);
+        html += `
+            <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <h3 style="margin: 0 0 10px 0; color: #1a1a1a; font-size: 16px;">${texts.job}</h3>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                    <span style="background: ${jobColor}; color: white; padding: 5px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                        ${texts[job.prediction] || job.prediction}
+                    </span>
+                    <span style="font-size: 18px; font-weight: bold; color: ${jobColor};">Score: ${job.score}</span>
+                </div>
+                ${job.insights && job.insights.length > 0 ? `
+                    <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #666; line-height: 1.6;">
+                        ${job.insights.map(i => `<li style="margin-bottom: 5px;">${i}</li>`).join('')}
+                    </ul>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // Relationships
+    if (synthesis.relationship) {
+        const relationship = synthesis.relationship;
+        const relationshipColor = getCategoryColor(relationship.prediction);
+        html += `
+            <div style="margin-bottom: 10px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <h3 style="margin: 0 0 10px 0; color: #1a1a1a; font-size: 16px;">${texts.relationship}</h3>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                    <span style="background: ${relationshipColor}; color: white; padding: 5px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                        ${texts[relationship.prediction] || relationship.prediction}
+                    </span>
+                    <span style="font-size: 18px; font-weight: bold; color: ${relationshipColor};">Score: ${relationship.score}</span>
+                </div>
+                ${relationship.insights && relationship.insights.length > 0 ? `
+                    <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #666; line-height: 1.6;">
+                        ${relationship.insights.map(i => `<li style="margin-bottom: 5px;">${i}</li>`).join('')}
+                    </ul>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    
+    // Step 6: Remedies and Precautions
+    html += `
+        <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid #f44336;">
+            <h2 style="color: #1a1a1a; margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">${texts.step6}</h2>
+            <div style="margin-bottom: 15px;">
+                <strong>Maha Dasa (${getPlanetName(steps.step1.planet)}):</strong>
+                <div style="margin-top: 5px; padding: 10px; background: #ffebee; border-radius: 5px; color: #666;">
+                    ${remedies.mahaDasa}
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong>Antar Dasa (${getPlanetName(steps.step2.planet)}):</strong>
+                <div style="margin-top: 5px; padding: 10px; background: #ffebee; border-radius: 5px; color: #666;">
+                    ${remedies.antarDasa}
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong>Pratyantar Dasa (${getPlanetName(steps.step3.planet)}):</strong>
+                <div style="margin-top: 5px; padding: 10px; background: #ffebee; border-radius: 5px; color: #666;">
+                    ${remedies.pratyantarDasa}
+                </div>
+            </div>
+            <div>
+                <strong>Sookshma Dasa (${getPlanetName(steps.step4.planet)}):</strong>
+                <div style="margin-top: 5px; padding: 10px; background: #ffebee; border-radius: 5px; color: #666;">
+                    ${remedies.sookshmaDasa}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    html += '</div>';
+    return html;
+}
 
 const GOOD_YOGA_DEFINITIONS = {
     raj: {
@@ -3657,6 +6147,72 @@ htmlOutput += `
     return htmlOutput;
 }
 
+// Function to fetch Shadbala data
+async function fetchShadbalaData(apiData) {
+    try {
+        const requestBody = {
+            year: apiData.year,
+            month: apiData.month,
+            date: apiData.date,
+            hours: apiData.hours,
+            minutes: apiData.minutes,
+            seconds: apiData.seconds,
+            latitude: apiData.latitude,
+            longitude: apiData.longitude,
+            timezone: apiData.timezone,
+            config: {
+                observation_point: "topocentric",
+                ayanamsha: "lahiri"
+            }
+        };
+        
+        console.log('Fetching Shadbala data with:', requestBody);
+        console.log('API URL:', API_CONFIG.shadbalaUrl);
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            'x-api-key': API_CONFIG.key
+        };
+        
+        const response = await fetch(API_CONFIG.shadbalaUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(requestBody)
+        });
+        
+        console.log('Shadbala API response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Shadbala API error response:', errorText);
+            
+            let errorMessage = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.message || errorText;
+            } catch (e) {
+                // Not JSON, use as is
+            }
+            
+            throw new Error(`Shadbala API request failed: ${response.status} - ${errorMessage}`);
+        }
+        
+        const data = await response.json();
+        console.log('Shadbala data received:', data);
+        
+        // Return the output data
+        if (data && data.output) {
+            return data.output;
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Error fetching Shadbala data:', error);
+        console.error('Error details:', error.message);
+        return null;
+    }
+}
+
 // Function to fetch Mahadasha and Antar Dasha data
 async function fetchMahaDashaData(apiData) {
     try {
@@ -3730,6 +6286,91 @@ async function fetchMahaDashaData(apiData) {
         return data;
     } catch (error) {
         console.error('Error fetching Mahadasha data:', error);
+        console.error('Error details:', error.message);
+        return null;
+    }
+}
+
+// Function to fetch Dasa Information for a given date
+async function fetchDasaInformation(apiData, eventDate) {
+    try {
+        const requestBody = {
+            year: apiData.year,
+            month: apiData.month,
+            date: apiData.date,
+            hours: apiData.hours,
+            minutes: apiData.minutes,
+            seconds: apiData.seconds,
+            latitude: apiData.latitude,
+            longitude: apiData.longitude,
+            timezone: apiData.timezone,
+            config: {
+                observation_point: "topocentric",
+                ayanamsha: "lahiri"
+            },
+            event_data: {
+                year: eventDate.year,
+                month: eventDate.month,
+                date: eventDate.date,
+                hours: eventDate.hours || 12,
+                minutes: eventDate.minutes || 0,
+                seconds: eventDate.seconds || 0
+            }
+        };
+        
+        console.log('Fetching Dasa Information with:', requestBody);
+        console.log('API URL:', API_CONFIG.dasaInformationUrl);
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            'x-api-key': API_CONFIG.key
+        };
+        
+        const response = await fetch(API_CONFIG.dasaInformationUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(requestBody)
+        });
+        
+        console.log('Dasa Information API response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Dasa Information API error response:', errorText);
+            
+            let errorMessage = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.message || errorText;
+            } catch (e) {
+                // Not JSON, use as is
+            }
+            
+            throw new Error(`Dasa Information API request failed: ${response.status} - ${errorMessage}`);
+        }
+        
+        const data = await response.json();
+        console.log('Dasa Information data received:', data);
+        
+        // Parse the output string if it's a JSON string
+        if (data && data.output) {
+            if (typeof data.output === 'string') {
+                try {
+                    const parsedOutput = JSON.parse(data.output);
+                    return parsedOutput;
+                } catch (e) {
+                    console.error('Error parsing Dasa Information output:', e);
+                    return data.output; // Return as-is if parsing fails
+                }
+            }
+            // If output is already an object, return it directly
+            return data.output;
+        }
+        
+        // If no output field, return the whole response
+        return data;
+    } catch (error) {
+        console.error('Error fetching Dasa Information:', error);
         console.error('Error details:', error.message);
         return null;
     }
@@ -3928,8 +6569,295 @@ function generateDashaSummary(currentDasha, apiResult, language, texts) {
     `;
 }
 
+// Global storage for tab data and generated content
+window.kundliTabData = {
+    planetsData: null,
+    ascendantSign: null,
+    mahaDashaData: null,
+    shadbalaApiData: null,
+    apiResult: null,
+    language: 'en',
+    generatedContent: {} // Cache for generated tab content
+};
+
+// Generate Tabs Interface for organizing sections (with lazy loading)
+function generateTabsInterface(sections, language = 'en') {
+    const tabLabels = language === 'hi' ? {
+        strengthAssessment: 'कुंडली शक्ति',
+        jobTiming: 'नौकरी/करियर',
+        money: 'धन/वित्त',
+        health: 'स्वास्थ्य',
+        relationship: 'संबंध/विवाह',
+        yogas: 'योग'
+    } : {
+        strengthAssessment: 'Chart Strength',
+        jobTiming: 'Job/Career',
+        money: 'Money/Finance',
+        health: 'Health',
+        relationship: 'Relationships',
+        yogas: 'Yogas'
+    };
+    
+    // Define which tabs should be available based on available data
+    const availableTabs = [];
+    const tabs = ['strengthAssessment', 'jobTiming', 'money', 'health', 'relationship', 'yogas'];
+    
+    tabs.forEach(tabKey => {
+        // Always show tabs if we have the basic data, even if content not generated yet
+        // Don't require mahaDashaData upfront - we'll fetch it on demand
+        let shouldShow = false;
+        if (tabKey === 'yogas' || tabKey === 'strengthAssessment') {
+            shouldShow = window.kundliTabData.planetsData && window.kundliTabData.ascendantSign;
+        } else {
+            // For tabs requiring mahaDasha, show them if we have basic data (we'll fetch mahaDasha on click)
+            shouldShow = window.kundliTabData.planetsData && window.kundliTabData.ascendantSign;
+        }
+        
+        if (shouldShow) {
+            availableTabs.push({
+                key: tabKey,
+                label: tabLabels[tabKey],
+                hasContent: !!(sections[tabKey] && sections[tabKey].trim() !== ''),
+                preGeneratedContent: sections[tabKey] || ''
+            });
+        }
+    });
+    
+    if (availableTabs.length === 0) {
+        return ''; // No tabs to show
+    }
+    
+    // Generate tab buttons
+    const tabButtons = availableTabs.map((tab, index) => {
+        const activeClass = index === 0 ? 'active' : '';
+        return `
+            <button class="tab-button ${activeClass}" data-tab="${tab.key}" type="button" role="tab" aria-selected="${index === 0 ? 'true' : 'false'}" aria-controls="tab-${tab.key}">
+                ${tab.label}
+            </button>
+        `;
+    }).join('');
+    
+    // Generate tab content - only first tab gets content, others are placeholders
+    const tabContents = availableTabs.map((tab, index) => {
+        const activeClass = index === 0 ? 'active' : '';
+        let content = '';
+        
+        // Only the first tab gets pre-generated content on homepage
+        if (index === 0 && tab.hasContent && tab.preGeneratedContent) {
+            content = tab.preGeneratedContent;
+            // Cache it
+            window.kundliTabData.generatedContent[tab.key] = content;
+        } else {
+            // Empty placeholder that will be loaded on demand when clicked
+            content = `
+                <div class="tab-loading-placeholder" data-tab-key="${tab.key}">
+                    <!-- Content will be loaded when tab is clicked -->
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="tab-content ${activeClass}" id="tab-${tab.key}" role="tabpanel" aria-labelledby="tab-button-${tab.key}">
+                ${content}
+            </div>
+        `;
+    }).join('');
+    
+    return `
+    <div class="tabs-container">
+        <div class="tabs-header" role="tablist">
+            ${tabButtons}
+        </div>
+        <div class="tabs-body">
+            ${tabContents}
+        </div>
+    </div>
+    `;
+}
+
+// Load tab content on demand
+async function loadTabContent(tabKey) {
+    // Check if already generated and cached
+    if (window.kundliTabData.generatedContent[tabKey]) {
+        return window.kundliTabData.generatedContent[tabKey];
+    }
+    
+    const { planetsData, ascendantSign, shadbalaApiData, language } = window.kundliTabData;
+    
+    if (!planetsData || !ascendantSign) {
+        return '<div style="padding: 20px; color: #f44336;">Error: Required data not available</div>';
+    }
+    
+    let content = '';
+    
+    try {
+        switch(tabKey) {
+            case 'strengthAssessment':
+                // Fetch Shadbala API only when user clicks on Planetary Strength section
+                if (!window.kundliTabData.shadbalaApiData) {
+                    const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                    if (apiDataForRequests) {
+                        try {
+                            window.kundliTabData.shadbalaApiData = await fetchShadbalaData(apiDataForRequests);
+                            console.log('Shadbala data fetched on demand:', window.kundliTabData.shadbalaApiData);
+                        } catch (error) {
+                            console.error('Error fetching Shadbala data:', error);
+                        }
+                    }
+                }
+                content = generateStrengthAssessmentSection(planetsData, ascendantSign, language, window.kundliTabData.shadbalaApiData);
+                break;
+                
+            case 'jobTiming':
+                // Always try to fetch if not available
+                if (!window.kundliTabData.mahaDashaData) {
+                    const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                    if (apiDataForRequests) {
+                        try {
+                            window.kundliTabData.mahaDashaData = await fetchMahaDashaData(apiDataForRequests);
+                        } catch (error) {
+                            console.error('Error fetching Mahadasha data:', error);
+                        }
+                    }
+                }
+                if (window.kundliTabData.mahaDashaData) {
+                    content = generateJobTimingSection(planetsData, ascendantSign, window.kundliTabData.mahaDashaData, language, shadbalaApiData);
+                } else {
+                    content = '<div style="padding: 20px; color: #666;">Mahadasha data not available. Please try again.</div>';
+                }
+                break;
+                
+            case 'money':
+                // Always try to fetch if not available
+                if (!window.kundliTabData.mahaDashaData) {
+                    const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                    if (apiDataForRequests) {
+                        try {
+                            window.kundliTabData.mahaDashaData = await fetchMahaDashaData(apiDataForRequests);
+                        } catch (error) {
+                            console.error('Error fetching Mahadasha data:', error);
+                        }
+                    }
+                }
+                if (window.kundliTabData.mahaDashaData) {
+                    // Fetch Shadbala API if not already fetched
+                    if (!window.kundliTabData.shadbalaApiData) {
+                        const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                        if (apiDataForRequests) {
+                            try {
+                                window.kundliTabData.shadbalaApiData = await fetchShadbalaData(apiDataForRequests);
+                            } catch (error) {
+                                console.error('Error fetching Shadbala data:', error);
+                            }
+                        }
+                    }
+                    content = generateMoneyPredictionSection(planetsData, ascendantSign, window.kundliTabData.mahaDashaData, language, window.kundliTabData.shadbalaApiData);
+                } else {
+                    content = '<div style="padding: 20px; color: #666;">Mahadasha data not available. Please try again.</div>';
+                }
+                break;
+                
+            case 'health':
+                // Always try to fetch if not available
+                if (!window.kundliTabData.mahaDashaData) {
+                    const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                    if (apiDataForRequests) {
+                        try {
+                            window.kundliTabData.mahaDashaData = await fetchMahaDashaData(apiDataForRequests);
+                        } catch (error) {
+                            console.error('Error fetching Mahadasha data:', error);
+                        }
+                    }
+                }
+                if (window.kundliTabData.mahaDashaData) {
+                    // Fetch Shadbala API if not already fetched
+                    if (!window.kundliTabData.shadbalaApiData) {
+                        const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                        if (apiDataForRequests) {
+                            try {
+                                window.kundliTabData.shadbalaApiData = await fetchShadbalaData(apiDataForRequests);
+                            } catch (error) {
+                                console.error('Error fetching Shadbala data:', error);
+                            }
+                            }
+                    }
+                    content = generateHealthPredictionSection(planetsData, ascendantSign, window.kundliTabData.mahaDashaData, language, window.kundliTabData.shadbalaApiData);
+                } else {
+                    content = '<div style="padding: 20px; color: #666;">Mahadasha data not available. Please try again.</div>';
+                }
+                break;
+                
+            case 'relationship':
+                // Always try to fetch if not available
+                if (!window.kundliTabData.mahaDashaData) {
+                    const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                    if (apiDataForRequests) {
+                        try {
+                            window.kundliTabData.mahaDashaData = await fetchMahaDashaData(apiDataForRequests);
+                        } catch (error) {
+                            console.error('Error fetching Mahadasha data:', error);
+                        }
+                    }
+                }
+                if (window.kundliTabData.mahaDashaData) {
+                    // Fetch Shadbala API if not already fetched
+                    if (!window.kundliTabData.shadbalaApiData) {
+                        const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                        if (apiDataForRequests) {
+                            try {
+                                window.kundliTabData.shadbalaApiData = await fetchShadbalaData(apiDataForRequests);
+                            } catch (error) {
+                                console.error('Error fetching Shadbala data:', error);
+                            }
+                        }
+                    }
+                    content = generateRelationshipPredictionSection(planetsData, ascendantSign, window.kundliTabData.mahaDashaData, language, window.kundliTabData.shadbalaApiData);
+                } else {
+                    content = '<div style="padding: 20px; color: #666;">Mahadasha data not available. Please try again.</div>';
+                }
+                break;
+                
+            case 'yogas':
+                const yogaResults = computeYogas(planetsData, ascendantSign);
+                content = generateYogaSection(yogaResults, language);
+                break;
+                
+            case 'dasaPredictions':
+                // Fetch Shadbala API if not already fetched
+                if (!window.kundliTabData.shadbalaApiData) {
+                    const apiDataForRequests = window.kundliTabData.apiDataForRequests;
+                    if (apiDataForRequests) {
+                        try {
+                            window.kundliTabData.shadbalaApiData = await fetchShadbalaData(apiDataForRequests);
+                        } catch (error) {
+                            console.error('Error fetching Shadbala data:', error);
+                        }
+                    }
+                }
+                content = generateDasaPredictionsSection(planetsData, ascendantSign, language, window.kundliTabData.shadbalaApiData);
+                break;
+                
+            default:
+                content = '<div style="padding: 20px; color: #666;">Unknown tab</div>';
+        }
+        
+        // Cache the generated content
+        if (content) {
+            window.kundliTabData.generatedContent[tabKey] = content;
+        }
+        
+        return content || '<div style="padding: 20px; color: #666;">No content available</div>';
+    } catch (error) {
+        console.error(`Error loading tab ${tabKey}:`, error);
+        return `<div style="padding: 20px; color: #f44336;">Error loading content: ${error.message}</div>`;
+    }
+}
+
+// Make loadTabContent globally accessible
+window.loadTabContent = loadTabContent;
+
 // Function to generate article-style HTML for same-page display
-function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, placeOfBirth, apiResult, language = 'en', currentDasha = null) {
+function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, placeOfBirth, apiResult, language = 'en', currentDasha = null, mahaDashaData = null, shadbalaApiData = null) {
     const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     const signsHindi = ['मेष', 'वृषभ', 'मिथुन', 'कर्क', 'सिंह', 'कन्या', 'तुला', 'वृश्चिक', 'धनु', 'मकर', 'कुंभ', 'मीन'];
     const selectedSigns = language === 'hi' ? signsHindi : signs;
@@ -4094,20 +7022,40 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
 
     const yogaResults = ascendantSign ? computeYogas(planetsData, ascendantSign) : { good: [], bad: [] };
     const yogaSection = generateYogaSection(yogaResults, language);
+    
+    // Don't generate these sections here - they will be loaded on demand when user clicks
+    // All prediction sections will be loaded lazily when user clicks on them
+    const strengthAssessmentSection = ''; // Will be loaded when user clicks "Planetary Strength"
+    const jobTimingSection = ''; // Will be loaded when user clicks "Job Timing"
+    const moneyPredictionSection = ''; // Will be loaded when user clicks "Money"
+    const healthPredictionSection = ''; // Will be loaded when user clicks "Health"
+    const relationshipPredictionSection = ''; // Will be loaded when user clicks "Relationships"
 
+    // Generate sidebar navigation
+    const sidebarNav = generateSidebarNavigation(language, {
+        hasStrength: !!strengthAssessmentSection,
+        hasJobTiming: !!jobTimingSection,
+        hasMoney: !!moneyPredictionSection,
+        hasHealth: !!healthPredictionSection,
+        hasRelationship: !!relationshipPredictionSection,
+        hasYogas: !!yogaSection
+    });
+    
     // ------------ RENDER THE HTML ------------
    return `
+    ${sidebarNav}
     <button onclick="goBackToForm()" class="back-button">${texts.backButton}</button>
+    <div class="article-main-content">
     <div class="article-content">
-        <div class="article-header">
+        <div class="article-header article-section" id="article-header">
             <h1>${texts.title}</h1>
             <div class="article-meta">${texts.subtitle}</div>
         </div>
         <div class="article-body">
-            <div class="article-intro">
+            <div class="article-intro article-section" id="article-intro">
                 <p>${texts.intro}</p>
             </div>
-            <div class="birth-details-box">
+            <div class="birth-details-box article-section" id="birth-details">
                 <h2>${texts.birthInfo}</h2>
                 <p><strong>${texts.name}:</strong> ${fullName}</p>
                 <p><strong>${texts.date}:</strong> ${formattedDate}</p>
@@ -4128,7 +7076,7 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
                 </p>
             </div>
             `}
-            <div class="planets-section">
+            <div class="planets-section article-section" id="planetary-positions">
                 <h2>${texts.planetaryPositions}</h2>
                 <div class="planets-table-wrapper">
                     <table class="planets-table">
@@ -4144,15 +7092,16 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
                     </table>
                 </div>
             </div>
-            <div class="planets-section">
+            <div class="planets-section article-section" id="house-lords">
                 <h2>${texts.houseLordInHouses}</h2>
                 ${houseLordsHTML}
             </div>
-            <div class="planets-section">
+            <div class="planets-section article-section" id="house-effects">
                 <h2>${texts.planetaryHouseEffects}</h2>
                 ${planetsHouseEffectsHTML}
             </div>
-            ${yogaSection}
+            <!-- Dynamic content area - content loads here when user clicks sidebar links -->
+            <div id="dynamic-content-area" class="dynamic-content-area"></div>
             <div class="article-intro" style="margin-top: 60px;">
                 <p style="font-size: 18px; color: #666; font-style: italic;">
                     ${texts.footerNote}
@@ -4162,6 +7111,93 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
     </div>
     `;
 
+}
+
+// Generate sidebar navigation HTML
+function generateSidebarNavigation(language, sections) {
+    const texts = {
+        en: {
+            nav: 'Navigation',
+            birthDetails: 'Birth Details',
+            planetaryPositions: 'Planetary Positions',
+            houseLords: 'House Lords',
+            houseEffects: 'Planetary House Effects',
+            strength: 'Planetary Strength',
+            predictions: 'Predictions',
+            jobTiming: 'Job/Career',
+            money: 'Money/Finance',
+            health: 'Health',
+            relationships: 'Relationships',
+            yogas: 'Yogas',
+            dasaPredictions: 'Dasa Predictions'
+        },
+        hi: {
+            nav: 'नेविगेशन',
+            birthDetails: 'जन्म विवरण',
+            planetaryPositions: 'ग्रह स्थिति',
+            houseLords: 'भाव स्वामी',
+            houseEffects: 'ग्रह भाव प्रभाव',
+            strength: 'ग्रह शक्ति',
+            predictions: 'भविष्यवाणी',
+            jobTiming: 'नौकरी/करियर',
+            money: 'धन/वित्त',
+            health: 'स्वास्थ्य',
+            relationships: 'रिश्ते',
+            yogas: 'योग',
+            dasaPredictions: 'दशा भविष्यवाणी'
+        }
+    };
+    
+    const t = texts[language] || texts.en;
+    
+    // Always show all navigation items (similar to main nav)
+    let navItems = `
+        <li class="sidebar-nav-item">
+            <a href="#article-header" class="sidebar-nav-link" data-section="article-header">${language === 'hi' ? 'कुंडली परिचय' : 'Chart Introduction'}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#birth-details" class="sidebar-nav-link" data-section="birth-details">${t.birthDetails}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#planetary-positions" class="sidebar-nav-link" data-section="planetary-positions">${t.planetaryPositions}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#house-lords" class="sidebar-nav-link" data-section="house-lords">${t.houseLords}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#house-effects" class="sidebar-nav-link" data-section="house-effects">${t.houseEffects}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#chart-strength" class="sidebar-nav-link" data-section="chart-strength" data-tab="strengthAssessment">${t.strength}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#job-timing" class="sidebar-nav-link" data-section="job-timing" data-tab="jobTiming">${t.jobTiming}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#money-prediction" class="sidebar-nav-link" data-section="money-prediction" data-tab="money">${t.money}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#health-prediction" class="sidebar-nav-link" data-section="health-prediction" data-tab="health">${t.health}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#relationship-prediction" class="sidebar-nav-link" data-section="relationship-prediction" data-tab="relationship">${t.relationships}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#yogas" class="sidebar-nav-link" data-section="yogas" data-tab="yogas">${t.yogas}</a>
+        </li>
+        <li class="sidebar-nav-item">
+            <a href="#dasa-predictions" class="sidebar-nav-link" data-section="dasa-predictions" data-tab="dasaPredictions">${t.dasaPredictions || 'Dasa Predictions'}</a>
+        </li>
+    `;
+    
+    return `
+        <button id="sidebarToggle" class="sidebar-toggle active" aria-label="Toggle sidebar">☰</button>
+        <aside id="articleSidebar" class="article-sidebar">
+            <ul class="sidebar-nav">
+                ${navItems}
+            </ul>
+        </aside>
+    `;
 }
 
 // Global function to go back to form
@@ -4250,7 +7286,7 @@ function showSampleReport() {
         endTime: '2027-11-01 00:00:00'
     };
     
-    // Generate article HTML
+    // Generate article HTML (sample report doesn't have mahaDashaData for job timing)
     const articleHTML = generateArticleHTML(
         sampleName,
         sampleDate,
@@ -4259,7 +7295,8 @@ function showSampleReport() {
         samplePlace,
         sampleData,
         language,
-        currentDasha
+        currentDasha,
+        null  // No mahaDashaData available for sample report
     );
     
     // Hide main container and show article view
@@ -4281,8 +7318,18 @@ function showSampleReport() {
     articleView.classList.remove('hidden');
     articleView.classList.add('active');
     
-    // Initialize chatbot
-    initializeChatbot(language);
+            // Initialize tabs and sidebar after content is loaded
+            setTimeout(() => {
+                if (typeof window.reinitializeTabs === 'function') {
+                    window.reinitializeTabs();
+                }
+                if (typeof window.reinitializeSidebar === 'function') {
+                    window.reinitializeSidebar();
+                }
+            }, 100);
+            
+            // Initialize chatbot
+            initializeChatbot(language);
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4529,20 +7576,78 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Request data (JSON):', JSON.stringify(apiData, null, 2));
             
             // Call FreeAstrologyAPI
-            const response = await fetch(API_CONFIG.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': API_CONFIG.key
-                },
-                body: JSON.stringify(apiData)
-            });
+            let response;
+            try {
+                response = await fetch(API_CONFIG.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': API_CONFIG.key
+                    },
+                    body: JSON.stringify(apiData)
+                });
+            } catch (fetchError) {
+                // Handle network errors (connection issues, CORS, etc.)
+                console.error('Network error fetching from API:', fetchError);
+                if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+                    throw new Error('Network error: Unable to connect to the API. Please check your internet connection and try again.');
+                } else if (fetchError.message.includes('CORS')) {
+                    throw new Error('CORS error: The API server is not allowing requests from this domain. Please contact the administrator.');
+                } else {
+                    throw new Error(`Network error: ${fetchError.message}`);
+                }
+            }
             
             console.log('Response status:', response.status);
             console.log('Response headers:', Object.fromEntries(response.headers.entries()));
             
             if (!response.ok) {
-                throw new Error('API request failed');
+                let errorText = '';
+                try {
+                    errorText = await response.text();
+                    console.error('API error response:', errorText);
+                } catch (textError) {
+                    console.error('Could not read error response text:', textError);
+                }
+                
+                console.error('API error status:', response.status, response.statusText);
+                
+                let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+                
+                // Try to parse error response for more details
+                if (errorText && errorText.trim()) {
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        if (errorData.message) {
+                            errorMessage = errorData.message;
+                        } else if (errorData.error) {
+                            errorMessage = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
+                        } else if (errorData.statusCode) {
+                            errorMessage = `API Error ${errorData.statusCode}: ${errorData.message || errorText}`;
+                        } else if (errorData.statusMessage) {
+                            errorMessage = `API Error: ${errorData.statusMessage}`;
+                        }
+                    } catch (e) {
+                        // If error response is not JSON, use the text
+                        const trimmedError = errorText.trim();
+                        if (trimmedError) {
+                            errorMessage += ` - ${trimmedError.substring(0, 200)}`;
+                        }
+                    }
+                }
+                
+                // Add helpful messages for common status codes
+                if (response.status === 401 || response.status === 403) {
+                    errorMessage += ' Please check if your API key is valid and has the necessary permissions.';
+                } else if (response.status === 429) {
+                    errorMessage += ' Too many requests. Please try again in a few moments.';
+                } else if (response.status === 400) {
+                    errorMessage += ' Invalid request. Please check your birth details (date, time, location).';
+                } else if (response.status >= 500) {
+                    errorMessage += ' Server error. The API service may be temporarily unavailable. Please try again later.';
+                }
+                
+                throw new Error(errorMessage);
             }
             
             const apiResult = await response.json();
@@ -4592,70 +7697,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('Storage error handled silently');
                 });
             
-            // Fetch Mahadasha data
+            // Prepare API data for lazy loading (APIs will be called only when sections are clicked)
+            // Don't fetch Mahadasha or Shadbala data here - fetch only when user clicks on those sections
             let currentDasha = null;
-            try {
-                const mahaDashaData = await fetchMahaDashaData({
-                    year: parseInt(year),
-                    month: parseInt(month),
-                    date: parseInt(day),
-                    hours: parseInt(hour),
-                    minutes: parseInt(minute),
-                    seconds: parseInt(second),
-                    latitude: parseFloat(latitude),
-                    longitude: parseFloat(longitude),
-                    timezone: parseFloat(timezone)
-                });
-                
-                // Find current Mahadasha and Antar Dasha
-                currentDasha = findCurrentDasha(mahaDashaData);
-                console.log('Current Dasha:', currentDasha);
-                if (currentDasha) {
-                    console.log('Mahadasha:', currentDasha.mahaDasha, 'Antar Dasha:', currentDasha.antarDasha);
-                } else {
-                    console.warn('No current Dasha found. Mahadasha data:', mahaDashaData);
-                    // If API returned data but no current period found, try to use the first available period as fallback
-                    if (mahaDashaData && Object.keys(mahaDashaData).length > 0) {
-                        const firstMahaDasha = Object.keys(mahaDashaData)[0];
-                        const firstAntarDasas = mahaDashaData[firstMahaDasha];
-                        if (firstAntarDasas && Object.keys(firstAntarDasas).length > 0) {
-                            const firstAntarDasha = Object.keys(firstAntarDasas)[0];
-                            const firstPeriod = firstAntarDasas[firstAntarDasha];
-                            console.log('Using fallback: First available Dasha period');
-                            currentDasha = {
-                                mahaDasha: firstMahaDasha,
-                                antarDasha: firstAntarDasha,
-                                startTime: firstPeriod.start_time,
-                                endTime: firstPeriod.end_time
-                            };
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error processing Mahadasha:', error);
-                console.error('Error message:', error.message);
-                // Create a fallback currentDasha using first planet from chart
-                if (apiResult.output && Array.isArray(apiResult.output) && apiResult.output.length > 1) {
-                    const planetsData = apiResult.output[1];
-                    const planetNames = ['Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Sun', 'Ketu', 'Rahu'];
-                    const firstPlanet = planetNames.find(p => planetsData[p]);
-                    const secondPlanet = planetNames.find(p => p !== firstPlanet && planetsData[p]);
-                    if (firstPlanet) {
-                        console.log('Using emergency fallback with planets:', firstPlanet, secondPlanet);
-                        currentDasha = {
-                            mahaDasha: firstPlanet,
-                            antarDasha: secondPlanet || firstPlanet,
-                            startTime: new Date().toISOString().split('T')[0],
-                            endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                        };
-                        console.log('Fallback currentDasha created:', currentDasha);
-                    } else {
-                        console.warn('Could not create fallback - no planets found in chart data');
-                    }
-                } else {
-                    console.warn('Could not create fallback - invalid apiResult structure');
-                }
-            }
+            let mahaDashaData = null;
+            let shadbalaApiData = null;
+            
+            const apiDataForRequests = {
+                year: parseInt(year),
+                month: parseInt(month),
+                date: parseInt(day),
+                hours: parseInt(hour),
+                minutes: parseInt(minute),
+                seconds: parseInt(second),
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude),
+                timezone: parseFloat(timezone)
+            };
+            
+            // APIs will be called lazily when user clicks on relevant sections
+            console.log('API data prepared for lazy loading');
             
             // Final check - ensure we have currentDasha for display
             if (!currentDasha) {
@@ -4666,6 +7727,21 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Hide loading and show article view
             loadingMessage.classList.add('hidden');
+            
+            // Store data globally for lazy loading tabs
+            // APIs (mahaDashaData, shadbalaApiData) will be fetched only when user clicks on relevant sections
+            if (apiResult.output && Array.isArray(apiResult.output) && apiResult.output.length > 1) {
+                window.kundliTabData = {
+                    planetsData: apiResult.output[1],
+                    ascendantSign: apiResult.output[1]?.Ascendant?.current_sign || null,
+                    mahaDashaData: null, // Will be fetched when prediction sections are clicked
+                    shadbalaApiData: null, // Will be fetched when Planetary Strength section is clicked
+                    apiResult: apiResult,
+                    apiDataForRequests: apiDataForRequests, // Store API request parameters for lazy loading
+                    language: language,
+                    generatedContent: {}
+                };
+            }
             
             // Generate article HTML
             const birthDate = new Date(dateOfBirth);
@@ -4678,7 +7754,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 timeZone:'Asia/Kolkata'
             });
             
-            let articleHTML = generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, placeOfBirth, apiResult, language, currentDasha);
+            // Generate article HTML - pass null for APIs that will be loaded on demand
+            let articleHTML = generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, placeOfBirth, apiResult, language, null, null, null);
             
             // Hide entire main container and show article view
             const mainContainer = document.getElementById('mainContainer');
@@ -4692,6 +7769,17 @@ document.addEventListener('DOMContentLoaded', function() {
             articleContent.innerHTML = articleHTML;
             articleView.classList.remove('hidden');
             articleView.classList.add('active');
+            
+            // Initialize tabs after content is loaded
+            setTimeout(() => {
+                if (typeof window.reinitializeTabs === 'function') {
+                    window.reinitializeTabs();
+                }
+                if (typeof window.reinitializeSidebar === 'function') {
+                    window.reinitializeSidebar();
+                }
+            }, 100);
+            
             initializeChatbot(language);
             
         } catch (error) {
@@ -4708,20 +7796,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 day: 'numeric' 
             });
             
+            // Determine error type and provide appropriate message
+            let errorTitle = 'Error fetching kundli data.';
+            let errorMessage = '';
+            let errorDetails = error.message;
+            let suggestions = '';
+            
+            if (error.message.includes('not configured')) {
+                errorMessage = 'Please configure your FreeAstrologyAPI key in script.js (see API_CONFIG at the top of the file).';
+                suggestions = 'Get your API key from https://freeastrologyapi.com';
+            } else if (error.message.includes('Limit Exceeded') || error.message.includes('Too many requests') || error.message.includes('429')) {
+                errorTitle = 'API Rate Limit Reached';
+                errorMessage = 'You have exceeded the API request limit. This usually happens when too many requests are made in a short period.';
+                suggestions = 'Please wait a few minutes before trying again. If you need to make many requests, consider upgrading your API plan at https://freeastrologyapi.com';
+            } else if (error.message.includes('401') || error.message.includes('403') || error.message.includes('Unauthorized') || error.message.includes('Forbidden')) {
+                errorTitle = 'API Authentication Error';
+                errorMessage = 'Your API key may be invalid or expired.';
+                suggestions = 'Please verify your API key at https://freeastrologyapi.com and update it in script.js';
+            } else if (error.message.includes('Network error') || error.message.includes('Unable to connect')) {
+                errorTitle = 'Connection Error';
+                errorMessage = 'Unable to connect to the API server.';
+                suggestions = 'Please check your internet connection and try again.';
+            } else if (error.message.includes('400') || error.message.includes('Invalid request')) {
+                errorTitle = 'Invalid Request';
+                errorMessage = 'The birth details provided may be invalid.';
+                suggestions = 'Please verify your date of birth, time, and location are correct.';
+            } else if (error.message.includes('500') || error.message.includes('Server error')) {
+                errorTitle = 'Server Error';
+                errorMessage = 'The API service is temporarily unavailable.';
+                suggestions = 'Please try again in a few moments. If the problem persists, the API service may be down.';
+            } else {
+                errorMessage = 'Please check your API key and endpoint configuration.';
+            }
+            
             resultContent.innerHTML = `
                 <p><strong>Date of Birth:</strong> ${formattedDate}</p>
                 <p><strong>Time of Birth:</strong> ${timeOfBirth || 'Not provided'}</p>
                 <p><strong>Place of Birth:</strong> ${placeOfBirth}</p>
                 <br>
-                <p style="color: #d32f2f; font-weight: 600;">Error fetching kundli data.</p>
-                <p style="margin-top: 8px; color: #666;">
-                    ${error.message.includes('not configured') 
-                        ? 'Please configure your FreeAstrologyAPI key in script.js (see API_CONFIG at the top of the file).' 
-                        : 'Please check your API key and endpoint configuration.'}
-                </p>
-                <p style="margin-top: 12px; font-size: 13px; color: #999;">
-                    Error details: ${error.message}
-                </p>
+                <div style="background: #ffebee; border-left: 4px solid #d32f2f; padding: 20px; border-radius: 4px; margin: 20px 0;">
+                    <p style="color: #d32f2f; font-weight: 600; font-size: 18px; margin: 0 0 10px 0;">${errorTitle}</p>
+                    <p style="margin: 8px 0; color: #666; line-height: 1.6;">
+                        ${errorMessage}
+                    </p>
+                    ${suggestions ? `
+                        <p style="margin: 12px 0 0 0; color: #555; font-size: 14px; line-height: 1.6;">
+                            <strong>💡 Suggestion:</strong> ${suggestions}
+                        </p>
+                    ` : ''}
+                    <p style="margin: 12px 0 0 0; font-size: 13px; color: #999; font-family: monospace;">
+                        <strong>Technical Details:</strong> ${errorDetails}
+                    </p>
+                </div>
             `;
         }
     });

@@ -231,7 +231,309 @@
                     });
                 });
             }
+            
+            // Initialize tabs functionality
+            initializeTabs();
         });
+        
+        // Initialize tabs functionality
+        function initializeTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            if (tabButtons.length === 0 || tabContents.length === 0) {
+                return; // No tabs to initialize
+            }
+            
+            tabButtons.forEach(button => {
+                // Remove existing event listeners by cloning
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                
+                newButton.addEventListener('click', async function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // Remove active class from all buttons and contents
+                    document.querySelectorAll('.tab-button').forEach(btn => {
+                        btn.classList.remove('active');
+                        btn.setAttribute('aria-selected', 'false');
+                    });
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    this.setAttribute('aria-selected', 'true');
+                    
+                    const targetContent = document.getElementById('tab-' + targetTab);
+                    if (targetContent) {
+                        targetContent.classList.add('active');
+                        
+                        // Always check if content needs to be loaded (even if not a placeholder)
+                        const placeholder = targetContent.querySelector('.tab-loading-placeholder');
+                        const isEmpty = !targetContent.innerHTML.trim() || placeholder || targetContent.textContent.trim() === '';
+                        
+                        if (isEmpty || placeholder || !window.kundliTabData.generatedContent[targetTab]) {
+                            // Show loading state
+                            targetContent.innerHTML = `
+                                <div style="text-align: center; padding: 40px 20px;">
+                                    <div class="spinner" style="margin: 0 auto 20px;"></div>
+                                    <p style="color: #666;">Loading content...</p>
+                                </div>
+                            `;
+                            
+                            // Load content on demand
+                            try {
+                                if (typeof window.loadTabContent === 'function') {
+                                    const content = await window.loadTabContent(targetTab);
+                                    targetContent.innerHTML = content;
+                                } else {
+                                    throw new Error('loadTabContent function not available');
+                                }
+                            } catch (error) {
+                                console.error('Error loading tab content:', error);
+                                targetContent.innerHTML = `
+                                    <div style="padding: 20px; color: #f44336;">
+                                        Error loading content: ${error.message}. Please try again.
+                                    </div>
+                                `;
+                            }
+                        }
+                    }
+                    
+                    // Scroll to top of tabs container
+                    const tabsContainer = this.closest('.tabs-container');
+                    if (tabsContainer) {
+                        const offsetTop = tabsContainer.offsetTop - 20;
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        }
+        
+        // Reinitialize tabs when new content is loaded
+        window.reinitializeTabs = function() {
+            initializeTabs();
+        };
+        
+        // Initialize sidebar navigation
+        function initializeSidebar() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('articleSidebar');
+            const navLinks = document.querySelectorAll('.sidebar-nav-link');
+            
+            if (!sidebarToggle || !sidebar) return;
+            
+            // Initialize sidebar as visible (not hidden) by default on desktop
+            if (window.innerWidth > 1024) {
+                sidebar.classList.remove('hidden');
+                sidebarToggle.classList.add('active');
+                const mainContent = document.querySelector('.article-main-content');
+                if (mainContent) {
+                    mainContent.classList.remove('sidebar-hidden');
+                }
+            } else {
+                // On mobile, start with sidebar hidden
+                sidebar.classList.add('hidden');
+                sidebarToggle.classList.remove('active');
+                const mainContent = document.querySelector('.article-main-content');
+                if (mainContent) {
+                    mainContent.classList.add('sidebar-hidden');
+                }
+            }
+            
+            // Toggle sidebar
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('hidden');
+                sidebarToggle.classList.toggle('active');
+                const mainContent = document.querySelector('.article-main-content');
+                if (mainContent) {
+                    if (sidebar.classList.contains('hidden')) {
+                        mainContent.classList.add('sidebar-hidden');
+                    } else {
+                        mainContent.classList.remove('sidebar-hidden');
+                    }
+                }
+            });
+            
+            // Handle navigation clicks using event delegation
+            sidebar.addEventListener('click', async function(e) {
+                const link = e.target.closest('.sidebar-nav-link');
+                if (!link) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const targetId = link.getAttribute('href') ? link.getAttribute('href').substring(1) : '';
+                const tabKey = link.getAttribute('data-tab');
+                
+                console.log('Sidebar link clicked:', { targetId, tabKey, href: link.getAttribute('href') });
+                
+                // Update active state
+                const allNavLinks = document.querySelectorAll('.sidebar-nav-link');
+                allNavLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                
+                // Check if this is a tab that needs dynamic loading
+                if (tabKey) {
+                    console.log('Loading tab:', tabKey);
+                    // Hide all sections except birth-details and header/intro
+                    const sectionsToHide = ['planetary-positions', 'house-lords', 'house-effects'];
+                    sectionsToHide.forEach(sectionId => {
+                        const section = document.getElementById(sectionId);
+                        if (section) {
+                            section.style.display = 'none';
+                        }
+                    });
+                    
+                    // Ensure header, intro, and birth-details are visible
+                    const header = document.getElementById('article-header');
+                    const intro = document.getElementById('article-intro');
+                    const birthDetails = document.getElementById('birth-details');
+                    const dynamicArea = document.getElementById('dynamic-content-area');
+                    
+                    if (header) header.style.display = 'block';
+                    if (intro) intro.style.display = 'block';
+                    if (birthDetails) birthDetails.style.display = 'block';
+                    if (dynamicArea) dynamicArea.style.display = 'block';
+                    
+                    // Hide the footer note that appears after house-effects
+                    const footerNote = dynamicArea?.nextElementSibling;
+                    if (footerNote && footerNote.classList.contains('article-intro')) {
+                        footerNote.style.display = 'none';
+                    }
+                    
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    
+                    // Show loading in dynamic content area
+                    if (!dynamicArea) {
+                        console.error('Dynamic content area not found!');
+                        alert('Error: Content area not found. Please refresh the page.');
+                        return;
+                    }
+                    
+                    // Clear any existing content and show loading
+                    dynamicArea.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px;">
+                            <div class="spinner" style="margin: 0 auto 20px;"></div>
+                            <p style="color: #666;">Loading content...</p>
+                        </div>
+                    `;
+                    
+                    // Load content
+                    try {
+                        console.log('Checking for loadTabContent function...', typeof window.loadTabContent);
+                        if (typeof window.loadTabContent === 'function') {
+                            console.log('Calling loadTabContent with key:', tabKey);
+                            const content = await window.loadTabContent(tabKey);
+                            console.log('Content loaded, length:', content ? content.length : 0);
+                            if (dynamicArea) {
+                                dynamicArea.innerHTML = content;
+                            }
+                            
+                            // Initialize Dasa predictions handler if this is the Dasa Predictions tab
+                            if (tabKey === 'dasaPredictions' && typeof window.initializeDasaPredictionsHandler === 'function') {
+                                setTimeout(() => {
+                                    window.initializeDasaPredictionsHandler();
+                                }, 100);
+                            }
+                            
+                            // Scroll to top after content loads
+                            setTimeout(() => {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }, 100);
+                        } else {
+                            console.error('loadTabContent function not available!');
+                            throw new Error('loadTabContent function not available. Please refresh the page.');
+                        }
+                    } catch (error) {
+                        console.error('Error loading tab content:', error);
+                        if (dynamicArea) {
+                            dynamicArea.innerHTML = `
+                                <div style="padding: 20px; color: #f44336;">
+                                    <strong>Error loading content:</strong> ${error.message}<br>
+                                    <small>Please check the browser console for details.</small>
+                                </div>
+                            `;
+                        }
+                    }
+                } else {
+                    // Regular section - show all sections and scroll to target
+                    const sectionsToShow = ['planetary-positions', 'house-lords', 'house-effects'];
+                    sectionsToShow.forEach(sectionId => {
+                        const section = document.getElementById(sectionId);
+                        if (section) {
+                            section.style.display = 'block';
+                        }
+                    });
+                    
+                    // Show the footer note
+                    const dynamicArea = document.getElementById('dynamic-content-area');
+                    if (dynamicArea) {
+                        const footerNote = dynamicArea.nextElementSibling;
+                        if (footerNote && footerNote.classList.contains('article-intro')) {
+                            footerNote.style.display = 'block';
+                        }
+                    }
+                    
+                    // Scroll to target section
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        const offsetTop = targetElement.offsetTop - 100;
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+                
+                // Close sidebar on mobile after clicking
+                if (window.innerWidth <= 1024) {
+                    sidebar.classList.add('hidden');
+                    sidebarToggle.classList.remove('active');
+                    const mainContent = document.querySelector('.article-main-content');
+                    if (mainContent) {
+                        mainContent.classList.add('sidebar-hidden');
+                    }
+                }
+            });
+            
+            // Highlight active section on scroll
+            const observerOptions = {
+                root: null,
+                rootMargin: '-100px 0px -50% 0px',
+                threshold: 0
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.getAttribute('id');
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${id}`) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+            
+            // Observe all sections
+            document.querySelectorAll('.article-section').forEach(section => {
+                observer.observe(section);
+            });
+        }
+        
+        // Reinitialize sidebar when new content is loaded
+        window.reinitializeSidebar = function() {
+            setTimeout(initializeSidebar, 100);
+        };
     </script>
     
     <footer class="main-footer">
@@ -261,6 +563,7 @@
         </div>
         <div class="footer-bottom">
             <p>&copy; 2025 AstroCosmicVeda. All rights reserved.</p>
+            <button id="chatbotToggle" class="chatbot-toggle" type="button">Ask Cosmic Guide</button>
         </div>
     </footer>
 </body>

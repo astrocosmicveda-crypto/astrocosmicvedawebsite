@@ -470,14 +470,301 @@ body {
     width: 100%;
     overflow-x: hidden;
     position: relative;
+    flex-direction: row;
 }
 
 .article-view.active {
-    display: block;
+    display: flex;
+    flex-direction: row;
 }
 
 .article-view.hidden {
     display: none;
+}
+
+/* Left Sidebar Navigation */
+.article-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 280px;
+    height: 100vh;
+    background: #f8f8f8;
+    border-right: 1px solid #e0e0e0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 0;
+    z-index: 100;
+    transition: transform 0.3s ease;
+    transform: translateX(0);
+    box-sizing: border-box;
+}
+
+.article-sidebar.hidden {
+    transform: translateX(-100%);
+}
+
+/* Ensure sidebar is visible by default on desktop */
+.article-sidebar:not(.hidden) {
+    transform: translateX(0);
+}
+
+.sidebar-toggle {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 60px;
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    z-index: 102;
+    display: none; /* Hidden by default on desktop */
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+}
+
+.sidebar-toggle:hover {
+    background: #333;
+    width: 45px;
+}
+
+/* Hide toggle when sidebar is visible */
+.article-sidebar:not(.hidden) ~ .sidebar-toggle,
+body:not(:has(.article-sidebar.hidden)) .sidebar-toggle {
+    display: none;
+}
+
+/* Show toggle when sidebar is hidden */
+.article-sidebar.hidden ~ .sidebar-toggle,
+body:has(.article-sidebar.hidden) .sidebar-toggle {
+    display: flex;
+    left: 0;
+}
+
+.sidebar-toggle.active {
+    left: 280px;
+}
+
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sidebar-nav-item {
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar-nav-link {
+    display: block;
+    padding: 12px 20px;
+    color: #443f39;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    width: 100%;
+    box-sizing: border-box;
+    word-wrap: break-word;
+}
+
+.sidebar-nav-link:hover {
+    background: #f5f5f5;
+    color: #8b7355;
+    border-left-color: #8b7355;
+}
+
+.sidebar-nav-link.active {
+    background: #fff;
+    color: #8b7355;
+    border-left-color: #8b7355;
+    font-weight: 600;
+}
+
+.sidebar-nav-section {
+    padding: 8px 20px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #999;
+    font-weight: 600;
+    margin-top: 15px;
+}
+
+.sidebar-nav-section:first-child {
+    margin-top: 0;
+}
+
+/* Dynamic content area for tab content */
+.dynamic-content-area {
+    margin: 40px 0;
+    min-height: 200px;
+}
+
+.article-main-content {
+    flex: 1;
+    margin-left: 280px;
+    transition: margin-left 0.3s ease;
+    min-height: 100vh;
+    width: calc(100% - 280px);
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.article-main-content.sidebar-hidden {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* When sidebar is visible (not hidden), content should shift right */
+body:not(:has(.article-sidebar.hidden)) .article-main-content {
+    margin-left: 280px !important;
+    width: calc(100% - 280px) !important;
+}
+
+body:has(.article-sidebar.hidden) .article-main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+/* Section anchors for smooth scrolling */
+.article-section {
+    scroll-margin-top: 100px;
+}
+
+@media (max-width: 1024px) {
+    .article-sidebar {
+        transform: translateX(-100%);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+    
+    .article-sidebar.active,
+    .article-sidebar:not(.hidden) {
+        transform: translateX(0);
+    }
+    
+    .article-sidebar.hidden {
+        transform: translateX(-100%);
+    }
+    
+    .article-main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    
+    .sidebar-toggle {
+        display: flex !important;
+    }
+    
+    .sidebar-toggle.active {
+        left: 280px;
+    }
+}
+
+@media (max-width: 768px) {
+    .article-sidebar {
+        width: 250px;
+    }
+    
+    .sidebar-toggle.active {
+        left: 250px;
+    }
+}
+
+/* Tabs Interface Styles */
+.tabs-container {
+    margin: 40px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.tabs-header {
+    display: flex;
+    flex-wrap: wrap;
+    background: #f8f8f8;
+    border-bottom: 2px solid #e0e0e0;
+    overflow-x: auto;
+}
+
+.tab-button {
+    flex: 1;
+    min-width: 120px;
+    padding: 14px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tab-button:hover {
+    background: #f0f0f0;
+    color: #1a1a1a;
+}
+
+.tab-button.active {
+    background: white;
+    color: #1a1a1a;
+    border-bottom-color: #d4af37;
+    font-weight: 600;
+}
+
+.tabs-body {
+    padding: 30px;
+    background: white;
+    min-height: 200px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .tabs-header {
+        flex-direction: column;
+    }
+    
+    .tab-button {
+        width: 100%;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+        border-right: none;
+    }
+    
+    .tab-button.active {
+        border-bottom-color: #d4af37;
+        border-left: 3px solid #d4af37;
+    }
+    
+    .tabs-body {
+        padding: 20px;
+    }
 }
 
 /* Hide main container when article is shown */
@@ -497,9 +784,9 @@ body:has(.article-view.active) .container {
 }
 
 .article-content {
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 80px 20px;
+    padding: 80px 40px;
     font-family: 'Charter', 'Crimson Text', Georgia, serif; /* Serif for article/report */
     line-height: 1.82;
     color: #201e1d;
@@ -507,6 +794,25 @@ body:has(.article-view.active) .container {
     overflow-wrap: break-word;
     box-sizing: border-box;
     width: 100%;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.article-content * {
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+/* Center header and intro content */
+.article-intro {
+    text-align: center;
+}
+
+.article-intro p {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 800px;
 }
 
 @media (max-width: 768px) {
@@ -529,8 +835,13 @@ body:has(.article-view.active) .container {
 
 .article-header {
     text-align: center;
-    padding: 0 0 50px 0;
+    padding: 60px 0 50px 0; /* Add top padding to account for back button */
     border-bottom: 3px solid #1a1a1a;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -641,9 +952,11 @@ body:has(.article-view.active) .container {
     background: #f9f9f9;
     padding: 30px;
     border-left: 4px solid #1a1a1a;
-    margin: 40px 0;
+    margin: 40px auto;
     box-sizing: border-box;
     width: 100%;
+    max-width: 600px;
+    text-align: center;
 }
 
 @media (max-width: 768px) {
@@ -872,7 +1185,7 @@ body:has(.article-view.active) .container {
 .back-button {
     position: fixed;
     top: 20px;
-    left: 20px;
+    right: 20px; /* Position on the right side to avoid overlapping title */
     background: #1a1a1a;
     color: white;
     border: none;
@@ -882,7 +1195,7 @@ body:has(.article-view.active) .container {
     font-size: 14px;
     font-weight: 600;
     z-index: 1000;
-    transition: background 0.2s;
+    transition: all 0.3s ease;
     -webkit-tap-highlight-color: transparent;
     min-height: 44px; /* Better touch target for mobile */
     display: flex;
@@ -890,10 +1203,18 @@ body:has(.article-view.active) .container {
     justify-content: center;
 }
 
+@media (max-width: 1024px) {
+    .back-button {
+        right: 15px !important; /* Position on right side */
+        left: auto !important;
+    }
+}
+
 @media (max-width: 768px) {
     .back-button {
         top: calc(15px + env(safe-area-inset-top, 0px));
-        left: 15px;
+        right: 15px !important;
+        left: auto !important;
         padding: 10px 20px;
         font-size: 13px;
     }
@@ -902,7 +1223,8 @@ body:has(.article-view.active) .container {
 @media (max-width: 480px) {
     .back-button {
         top: calc(10px + env(safe-area-inset-top, 0px));
-        left: 10px;
+        right: 10px !important;
+        left: auto !important;
         padding: 10px 18px;
         font-size: 13px;
         border-radius: 4px;
@@ -1982,6 +2304,21 @@ body:has(.article-view.active) .container {
     margin-top: auto;
     padding: 3rem 2rem 1rem;
     width: 100%;
+    position: relative;
+    z-index: 10;
+}
+
+/* When article view is active, footer should account for sidebar */
+body:has(.article-view.active) .main-footer {
+    margin-left: 280px;
+    width: calc(100% - 280px);
+    transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+body:has(.article-view.active) .article-sidebar.hidden ~ * .main-footer,
+body:has(.article-view.active .article-sidebar.hidden) .main-footer {
+    margin-left: 0;
+    width: 100%;
 }
 
 .footer-container {
@@ -2028,8 +2365,38 @@ body:has(.article-view.active) .container {
     margin: 2rem auto 0;
     padding-top: 2rem;
     border-top: 1px solid #443f39;
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     color: #d4c5b0;
+}
+
+.footer-bottom p {
+    margin: 0;
+}
+
+.footer-bottom .chatbot-toggle {
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.footer-bottom .chatbot-toggle:hover {
+    background: #333;
+}
+
+@media (max-width: 768px) {
+    .footer-bottom {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
 }
 
 /* Page Container Styles (for About, Contact, Privacy pages) */
