@@ -222,6 +222,11 @@ function generateYogaSection(yogaResults, language = 'en') {
 function generateStrengthAssessmentSection(planetsData, ascendantSign, language = 'en', shadbalaApiData = null) {
     if (!planetsData || !ascendantSign) return '';
     
+    // Calculate Kundli Scores
+    const yogaResults = computeYogas(planetsData, ascendantSign);
+    const currentDasha = window.kundliTabData.currentDasha || null;
+    const kundliScores = calculateOverallKundliScore(planetsData, ascendantSign, yogaResults, currentDasha, shadbalaApiData);
+    
     const texts = language === 'hi' ? {
         title: 'कुंडली शक्ति मूल्यांकन (Chart Strength Assessment)',
         overallStrength: 'समग्र चार्ट शक्ति',
@@ -294,8 +299,21 @@ function generateStrengthAssessmentSection(planetsData, ascendantSign, language 
         noData: 'No data available'
     };
     
-    // Calculate overall chart strength
-    const overallStrength = calculateOverallChartStrength(planetsData, ascendantSign, shadbalaApiData);
+    // Calculate overall chart strength based on average of health, finance, and career
+    const overallStrengthPercentage = Math.round(kundliScores.overall * 10); // Convert 1-10 scale to percentage
+    const healthPercentage = Math.round(kundliScores.health.score * 10);
+    const financePercentage = Math.round(kundliScores.finance.score * 10);
+    const careerPercentage = Math.round(kundliScores.career.score * 10);
+    
+    // Calculate Planetary Strength and House Lord Strength for display
+    const planetaryStrengthData = calculateOverallChartStrength(planetsData, ascendantSign, shadbalaApiData);
+    
+    // Determine category based on percentage
+    let strengthCategory = 'moderate';
+    if (overallStrengthPercentage >= 75) strengthCategory = 'strong';
+    else if (overallStrengthPercentage >= 60) strengthCategory = 'good';
+    else if (overallStrengthPercentage >= 45) strengthCategory = 'moderate';
+    else strengthCategory = 'weak';
     
     // Get strength category color
     const getStrengthColor = (category) => {
@@ -308,25 +326,385 @@ function generateStrengthAssessmentSection(planetsData, ascendantSign, language 
         }
     };
     
-    const strengthColor = overallStrength ? getStrengthColor(overallStrength.category) : '#666';
+    const strengthColor = getStrengthColor(strengthCategory);
     
     let overallHTML = '';
-    if (overallStrength) {
+    if (kundliScores) {
         overallHTML = `
             <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 <h2 style="margin-top: 0; color: #1a1a1a;">${texts.overallStrength}</h2>
                 <div style="display: flex; align-items: center; gap: 20px; margin: 20px 0;">
                     <div style="flex: 1;">
                         <div style="font-size: 48px; font-weight: bold; color: ${strengthColor};">
-                            ${overallStrength.overallStrength}%
+                            ${overallStrengthPercentage}%
                         </div>
                         <div style="font-size: 18px; color: ${strengthColor}; font-weight: 600; text-transform: capitalize;">
-                            ${texts[overallStrength.category] || overallStrength.category}
+                            ${texts[strengthCategory] || strengthCategory}
                         </div>
                     </div>
                     <div style="flex: 1; border-left: 2px solid #ddd; padding-left: 20px;">
-                        <p style="margin: 5px 0;"><strong>${texts.planetaryStrength}:</strong> ${overallStrength.avgPlanetaryStrength}%</p>
-                        <p style="margin: 5px 0;"><strong>${texts.houseLordStrength}:</strong> ${overallStrength.avgHouseLordStrength}%</p>
+                        <p style="margin: 5px 0;"><strong>${texts.planetaryStrength}:</strong> ${planetaryStrengthData ? planetaryStrengthData.avgPlanetaryStrength : 0}%</p>
+                        <p style="margin: 5px 0;"><strong>${texts.houseLordStrength}:</strong> ${planetaryStrengthData ? planetaryStrengthData.avgHouseLordStrength : 0}%</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add Kundli Rating Section with calculation details
+    let kundliRatingHTML = '';
+    if (kundliScores) {
+        const scoreTexts = language === 'hi' ? {
+            title: 'कुंडली रेटिंग (1-10)',
+            health: 'स्वास्थ्य',
+            finance: 'वित्त',
+            career: 'करियर/नौकरी',
+            overall: 'समग्र कुंडली स्कोर',
+            strong: 'मजबूत',
+            moderate: 'मध्यम',
+            weak: 'कमजोर',
+            veryWeak: 'बहुत कमजोर',
+            excellent: 'उत्कृष्ट कुंडली',
+            good: 'अच्छी कुंडली',
+            moderateKundli: 'मध्यम कुंडली',
+            weakKundli: 'कमजोर कुंडली',
+            calculation: 'गणना विवरण',
+            factors: 'कारक',
+            houseStrength: 'भाव शक्ति',
+            lordStrength: 'स्वामी शक्ति',
+            yogas: 'योग',
+            dasha: 'दशा',
+            rawScore: 'कच्चा स्कोर',
+            finalRating: 'अंतिम रेटिंग',
+            method: 'स्कोरिंग विधि',
+            methodText: 'स्कोर 0 से शुरू होता है, फिर सकारात्मक कारकों के लिए अंक जोड़े जाते हैं और नकारात्मक कारकों के लिए घटाए जाते हैं।'
+        } : {
+            title: 'Kundli Rating (1-10)',
+            health: 'Health',
+            finance: 'Finance',
+            career: 'Career/Job',
+            overall: 'Overall Kundli Score',
+            strong: 'Strong',
+            moderate: 'Moderate',
+            weak: 'Weak',
+            veryWeak: 'Very Weak',
+            excellent: 'Excellent Kundli',
+            good: 'Good Kundli',
+            moderateKundli: 'Moderate Kundli',
+            weakKundli: 'Weak Kundli',
+            calculation: 'Calculation Details',
+            factors: 'Factors',
+            houseStrength: 'House Strength',
+            lordStrength: 'Lord Strength',
+            yogas: 'Yogas',
+            dasha: 'Dasha',
+            rawScore: 'Raw Score',
+            finalRating: 'Final Rating',
+            method: 'Scoring Method',
+            methodText: 'Score starts at 0, then points are added for positive factors and subtracted for negative factors.'
+        };
+        
+        kundliRatingHTML = `
+            <div class="kundli-scores-section" style="margin: 30px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <h2 style="color: white; margin: 0 0 25px 0; font-size: 24px; font-weight: 600; text-align: center;">
+                    ${scoreTexts.title}
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+                    <div style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                            ${scoreTexts.health}
+                        </div>
+                        <div style="font-size: 36px; font-weight: 700; color: #4caf50; margin-bottom: 5px;">
+                            ${kundliScores.health.score.toFixed(1)}/10
+                        </div>
+                        <div style="font-size: 11px; color: #999; margin-top: 5px;">
+                            ${kundliScores.health.score >= 8 ? scoreTexts.strong : 
+                              kundliScores.health.score >= 6 ? scoreTexts.moderate : 
+                              kundliScores.health.score >= 4 ? scoreTexts.weak : 
+                              scoreTexts.veryWeak}
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                            ${scoreTexts.finance}
+                        </div>
+                        <div style="font-size: 36px; font-weight: 700; color: #2196f3; margin-bottom: 5px;">
+                            ${kundliScores.finance.score.toFixed(1)}/10
+                        </div>
+                        <div style="font-size: 11px; color: #999; margin-top: 5px;">
+                            ${kundliScores.finance.score >= 8 ? scoreTexts.strong : 
+                              kundliScores.finance.score >= 6 ? scoreTexts.moderate : 
+                              kundliScores.finance.score >= 4 ? scoreTexts.weak : 
+                              scoreTexts.veryWeak}
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="font-size: 14px; color: #666; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                            ${scoreTexts.career}
+                        </div>
+                        <div style="font-size: 36px; font-weight: 700; color: #ff9800; margin-bottom: 5px;">
+                            ${kundliScores.career.score.toFixed(1)}/10
+                        </div>
+                        <div style="font-size: 11px; color: #999; margin-top: 5px;">
+                            ${kundliScores.career.score >= 8 ? scoreTexts.strong : 
+                              kundliScores.career.score >= 6 ? scoreTexts.moderate : 
+                              kundliScores.career.score >= 4 ? scoreTexts.weak : 
+                              scoreTexts.veryWeak}
+                        </div>
+                    </div>
+                </div>
+                <div style="background: rgba(255,255,255,0.95); padding: 25px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.5); margin-bottom: 25px;">
+                    <div style="font-size: 16px; color: #666; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        ${scoreTexts.overall}
+                    </div>
+                    <div style="font-size: 48px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px;">
+                        ${kundliScores.overall.toFixed(1)}/10
+                    </div>
+                    <div style="font-size: 13px; color: #666; margin-top: 8px;">
+                        ${kundliScores.overall >= 8 ? scoreTexts.excellent : 
+                          kundliScores.overall >= 6 ? scoreTexts.good : 
+                          kundliScores.overall >= 4 ? scoreTexts.moderateKundli : 
+                          scoreTexts.weakKundli}
+                    </div>
+                </div>
+                
+                <!-- Calculation Details -->
+                <div style="background: rgba(255,255,255,0.95); padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <h3 style="color: #1a1a1a; margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">
+                        ${scoreTexts.calculation}
+                    </h3>
+                    
+                    <!-- Health Calculation -->
+                    <div style="margin-bottom: 25px; padding: 15px; background: #f5f5f5; border-radius: 6px; border-left: 4px solid #4caf50;">
+                        <h4 style="color: #4caf50; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">${scoreTexts.health}</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                            <div><strong>${scoreTexts.houseStrength}:</strong> ${kundliScores.health.factors.houseStrength >= 0 ? '+' : ''}${kundliScores.health.factors.houseStrength}</div>
+                            <div><strong>${scoreTexts.lordStrength}:</strong> ${kundliScores.health.factors.lordStrength >= 0 ? '+' : ''}${kundliScores.health.factors.lordStrength}</div>
+                            <div><strong>${scoreTexts.yogas}:</strong> ${kundliScores.health.factors.yogas >= 0 ? '+' : ''}${kundliScores.health.factors.yogas}</div>
+                        </div>
+                        
+                        ${kundliScores.health.factors.houseBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #4caf50;">${scoreTexts.houseStrength} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.health.factors.houseBreakdown.map(h => `
+                                <div style="margin-bottom: 8px; font-size: 13px;">
+                                    <strong>${getOrdinal(h.house, language)} ${language === 'hi' ? 'भाव' : 'House'}:</strong> ${h.score >= 0 ? '+' : ''}${h.score} points
+                                    ${h.planets && h.planets.length > 0 ? `
+                                        <div style="margin-left: 15px; margin-top: 4px; color: #666;">
+                                            ${h.planets.map(p => {
+                                                const planetName = PLANET_NAMES[language] && PLANET_NAMES[language][p.planet] ? PLANET_NAMES[language][p.planet] : p.planet;
+                                                return `${planetName}: ${p.points >= 0 ? '+' : ''}${p.points} (${p.details})`;
+                                            }).join('<br>')}
+                                            ${h.multipleMaleficsPenalty && h.multipleMaleficsPenalty < 0 ? `<br><span style="color: #d32f2f;">Multiple Malefics Penalty: ${h.multipleMaleficsPenalty}</span>` : ''}
+                                        </div>
+                                    ` : '<span style="color: #999; margin-left: 10px;">No planets</span>'}
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        
+                        ${kundliScores.health.factors.lordBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #4caf50;">${scoreTexts.lordStrength} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.health.factors.lordBreakdown.map(l => {
+                                const lordName = PLANET_NAMES[language] && PLANET_NAMES[language][l.lord] ? PLANET_NAMES[language][l.lord] : l.lord;
+                                return `
+                                <div style="margin-bottom: 8px; font-size: 13px;">
+                                    <strong>${getOrdinal(l.house, language)} ${language === 'hi' ? 'भाव स्वामी' : 'House Lord'} (${lordName}):</strong> ${l.score >= 0 ? '+' : ''}${l.score} points
+                                    ${l.details ? `<div style="margin-left: 15px; margin-top: 4px; color: #666;">${l.details}</div>` : ''}
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        ` : ''}
+                        
+                        ${kundliScores.health.factors.yogaBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #4caf50;">${scoreTexts.yogas} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.health.factors.yogaBreakdown.good && kundliScores.health.factors.yogaBreakdown.good.length > 0 ? `
+                                <div style="margin-bottom: 6px;">
+                                    <strong style="color: #2e7d32;">${language === 'hi' ? 'शुभ योग' : 'Good Yogas'}:</strong>
+                                    ${kundliScores.health.factors.yogaBreakdown.good.map(y => `<div style="margin-left: 15px; margin-top: 4px; color: #666; font-size: 13px;">${y.name}: +${y.points}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                            ${kundliScores.health.factors.yogaBreakdown.bad && kundliScores.health.factors.yogaBreakdown.bad.length > 0 ? `
+                                <div>
+                                    <strong style="color: #d32f2f;">${language === 'hi' ? 'अशुभ योग' : 'Bad Yogas'}:</strong>
+                                    ${kundliScores.health.factors.yogaBreakdown.bad.map(y => `<div style="margin-left: 15px; margin-top: 4px; color: #666; font-size: 13px;">${y.name}: ${y.points}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                            ${(!kundliScores.health.factors.yogaBreakdown.good || kundliScores.health.factors.yogaBreakdown.good.length === 0) && 
+                              (!kundliScores.health.factors.yogaBreakdown.bad || kundliScores.health.factors.yogaBreakdown.bad.length === 0) ? 
+                              `<span style="color: #999; font-size: 13px;">${language === 'hi' ? 'कोई प्रासंगिक योग नहीं' : 'No relevant yogas'}</span>` : ''}
+                        </div>
+                        ` : ''}
+                        
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #4caf50;">
+                            <strong>${scoreTexts.rawScore}:</strong> ${kundliScores.health.factors.rawTotal >= 0 ? '+' : ''}${kundliScores.health.factors.rawTotal} → 
+                            <strong>${scoreTexts.finalRating}:</strong> ${kundliScores.health.score.toFixed(1)}/10
+                        </div>
+                    </div>
+                    
+                    <!-- Finance Calculation -->
+                    <div style="margin-bottom: 25px; padding: 15px; background: #f5f5f5; border-radius: 6px; border-left: 4px solid #2196f3;">
+                        <h4 style="color: #2196f3; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">${scoreTexts.finance}</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                            <div><strong>${scoreTexts.houseStrength}:</strong> ${kundliScores.finance.factors.houseStrength >= 0 ? '+' : ''}${kundliScores.finance.factors.houseStrength}</div>
+                            <div><strong>${scoreTexts.lordStrength}:</strong> ${kundliScores.finance.factors.lordStrength >= 0 ? '+' : ''}${kundliScores.finance.factors.lordStrength}</div>
+                            <div><strong>${scoreTexts.yogas}:</strong> ${kundliScores.finance.factors.yogas >= 0 ? '+' : ''}${kundliScores.finance.factors.yogas}</div>
+                        </div>
+                        
+                        ${kundliScores.finance.factors.houseBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #2196f3;">${scoreTexts.houseStrength} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.finance.factors.houseBreakdown.map(h => `
+                                <div style="margin-bottom: 8px; font-size: 13px;">
+                                    <strong>${getOrdinal(h.house, language)} ${language === 'hi' ? 'भाव' : 'House'}:</strong> ${h.score >= 0 ? '+' : ''}${h.score} points
+                                    ${h.planets && h.planets.length > 0 ? `
+                                        <div style="margin-left: 15px; margin-top: 4px; color: #666;">
+                                            ${h.planets.map(p => {
+                                                const planetName = PLANET_NAMES[language] && PLANET_NAMES[language][p.planet] ? PLANET_NAMES[language][p.planet] : p.planet;
+                                                return `${planetName}: ${p.points >= 0 ? '+' : ''}${p.points} (${p.details})`;
+                                            }).join('<br>')}
+                                            ${h.multipleMaleficsPenalty && h.multipleMaleficsPenalty < 0 ? `<br><span style="color: #d32f2f;">Multiple Malefics Penalty: ${h.multipleMaleficsPenalty}</span>` : ''}
+                                        </div>
+                                    ` : '<span style="color: #999; margin-left: 10px;">No planets</span>'}
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        
+                        ${kundliScores.finance.factors.lordBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #2196f3;">${scoreTexts.lordStrength} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.finance.factors.lordBreakdown.map(l => {
+                                const lordName = PLANET_NAMES[language] && PLANET_NAMES[language][l.lord] ? PLANET_NAMES[language][l.lord] : l.lord;
+                                return `
+                                <div style="margin-bottom: 8px; font-size: 13px;">
+                                    <strong>${getOrdinal(l.house, language)} ${language === 'hi' ? 'भाव स्वामी' : 'House Lord'} (${lordName}):</strong> ${l.score >= 0 ? '+' : ''}${l.score} points
+                                    ${l.details ? `<div style="margin-left: 15px; margin-top: 4px; color: #666;">${l.details}</div>` : ''}
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        ` : ''}
+                        
+                        ${kundliScores.finance.factors.yogaBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #2196f3;">${scoreTexts.yogas} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.finance.factors.yogaBreakdown.good && kundliScores.finance.factors.yogaBreakdown.good.length > 0 ? `
+                                <div style="margin-bottom: 6px;">
+                                    <strong style="color: #2e7d32;">${language === 'hi' ? 'शुभ योग' : 'Good Yogas'}:</strong>
+                                    ${kundliScores.finance.factors.yogaBreakdown.good.map(y => `<div style="margin-left: 15px; margin-top: 4px; color: #666; font-size: 13px;">${y.name}: +${y.points}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                            ${kundliScores.finance.factors.yogaBreakdown.bad && kundliScores.finance.factors.yogaBreakdown.bad.length > 0 ? `
+                                <div>
+                                    <strong style="color: #d32f2f;">${language === 'hi' ? 'अशुभ योग' : 'Bad Yogas'}:</strong>
+                                    ${kundliScores.finance.factors.yogaBreakdown.bad.map(y => `<div style="margin-left: 15px; margin-top: 4px; color: #666; font-size: 13px;">${y.name}: ${y.points}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                            ${(!kundliScores.finance.factors.yogaBreakdown.good || kundliScores.finance.factors.yogaBreakdown.good.length === 0) && 
+                              (!kundliScores.finance.factors.yogaBreakdown.bad || kundliScores.finance.factors.yogaBreakdown.bad.length === 0) ? 
+                              `<span style="color: #999; font-size: 13px;">${language === 'hi' ? 'कोई प्रासंगिक योग नहीं' : 'No relevant yogas'}</span>` : ''}
+                        </div>
+                        ` : ''}
+                        
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #2196f3;">
+                            <strong>${scoreTexts.rawScore}:</strong> ${kundliScores.finance.factors.rawTotal >= 0 ? '+' : ''}${kundliScores.finance.factors.rawTotal} → 
+                            <strong>${scoreTexts.finalRating}:</strong> ${kundliScores.finance.score.toFixed(1)}/10
+                        </div>
+                    </div>
+                    
+                    <!-- Career Calculation -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 6px; border-left: 4px solid #ff9800;">
+                        <h4 style="color: #ff9800; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">${scoreTexts.career}</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                            <div><strong>${language === 'hi' ? 'कार्य शक्ति' : 'Work Strength'}:</strong> ${kundliScores.career.workStrength ? kundliScores.career.workStrength.toFixed(1) : kundliScores.career.score.toFixed(1)}/10</div>
+                            <div><strong>${language === 'hi' ? 'आय शक्ति' : 'Earnings Strength'}:</strong> ${kundliScores.career.earningsStrength ? kundliScores.career.earningsStrength.toFixed(1) : 'N/A'}/10</div>
+                            <div><strong>${language === 'hi' ? 'समग्र करियर' : 'Overall Career'}:</strong> ${kundliScores.career.score.toFixed(1)}/10</div>
+                        </div>
+                        ${kundliScores.career.factors ? `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px; font-size: 13px;">
+                            <div><strong>10th Block:</strong> ${kundliScores.career.factors.tenthBlock >= 0 ? '+' : ''}${kundliScores.career.factors.tenthBlock || 0}/8</div>
+                            <div><strong>Lagna Block:</strong> ${kundliScores.career.factors.lagnaBlock >= 0 ? '+' : ''}${kundliScores.career.factors.lagnaBlock || 0}/4</div>
+                            <div><strong>6th Block:</strong> ${kundliScores.career.factors.sixthBlock >= 0 ? '+' : ''}${kundliScores.career.factors.sixthBlock || 0}/3</div>
+                            <div><strong>3rd Block:</strong> ${kundliScores.career.factors.thirdBlock >= 0 ? '+' : ''}${kundliScores.career.factors.thirdBlock || 0}/3</div>
+                            <div><strong>2nd Block:</strong> ${kundliScores.career.factors.secondBlock >= 0 ? '+' : ''}${kundliScores.career.factors.secondBlock || 0}/3</div>
+                            <div><strong>11th Block:</strong> ${kundliScores.career.factors.eleventhBlock >= 0 ? '+' : ''}${kundliScores.career.factors.eleventhBlock || 0}/3</div>
+                            <div><strong>Karakas:</strong> ${kundliScores.career.factors.karakaScore >= 0 ? '+' : ''}${kundliScores.career.factors.karakaScore || 0}/3</div>
+                            <div><strong>Yogas:</strong> ${kundliScores.career.factors.yogaScore >= 0 ? '+' : ''}${kundliScores.career.factors.yogaScore || 0}/3</div>
+                            <div><strong>Aspects:</strong> ${kundliScores.career.factors.aspectsScore >= 0 ? '+' : ''}${kundliScores.career.factors.aspectsScore || 0}</div>
+                            ${kundliScores.career.factors.lagnaReduction > 0 ? `<div style="color: #d32f2f;"><strong>Lagna Reduction:</strong> -${(kundliScores.career.factors.lagnaReduction * 100).toFixed(0)}%</div>` : ''}
+                        </div>
+                        ` : ''}
+                        
+                        ${kundliScores.career.factors.houseBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #ff9800;">${scoreTexts.houseStrength} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.career.factors.houseBreakdown.map(h => `
+                                <div style="margin-bottom: 8px; font-size: 13px;">
+                                    <strong>${getOrdinal(h.house, language)} ${language === 'hi' ? 'भाव' : 'House'}:</strong> ${h.score >= 0 ? '+' : ''}${h.score} points
+                                    ${h.planets && h.planets.length > 0 ? `
+                                        <div style="margin-left: 15px; margin-top: 4px; color: #666;">
+                                            ${h.planets.map(p => {
+                                                const planetName = PLANET_NAMES[language] && PLANET_NAMES[language][p.planet] ? PLANET_NAMES[language][p.planet] : p.planet;
+                                                return `${planetName}: ${p.points >= 0 ? '+' : ''}${p.points} (${p.details})`;
+                                            }).join('<br>')}
+                                            ${h.multipleMaleficsPenalty && h.multipleMaleficsPenalty < 0 ? `<br><span style="color: #d32f2f;">Multiple Malefics Penalty: ${h.multipleMaleficsPenalty}</span>` : ''}
+                                        </div>
+                                    ` : '<span style="color: #999; margin-left: 10px;">No planets</span>'}
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        
+                        ${kundliScores.career.factors.lordBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #ff9800;">${scoreTexts.lordStrength} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.career.factors.lordBreakdown.map(l => {
+                                const lordName = PLANET_NAMES[language] && PLANET_NAMES[language][l.lord] ? PLANET_NAMES[language][l.lord] : l.lord;
+                                return `
+                                <div style="margin-bottom: 8px; font-size: 13px;">
+                                    <strong>${getOrdinal(l.house, language)} ${language === 'hi' ? 'भाव स्वामी' : 'House Lord'} (${lordName}):</strong> ${l.score >= 0 ? '+' : ''}${l.score} points
+                                    ${l.details ? `<div style="margin-left: 15px; margin-top: 4px; color: #666;">${l.details}</div>` : ''}
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        ` : ''}
+                        
+                        ${kundliScores.career.factors.yogaBreakdown ? `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px; color: #ff9800;">${scoreTexts.yogas} ${language === 'hi' ? 'विवरण' : 'Details'}:</strong>
+                            ${kundliScores.career.factors.yogaBreakdown.good && kundliScores.career.factors.yogaBreakdown.good.length > 0 ? `
+                                <div style="margin-bottom: 6px;">
+                                    <strong style="color: #2e7d32;">${language === 'hi' ? 'शुभ योग' : 'Good Yogas'}:</strong>
+                                    ${kundliScores.career.factors.yogaBreakdown.good.map(y => `<div style="margin-left: 15px; margin-top: 4px; color: #666; font-size: 13px;">${y.name}: +${y.points}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                            ${kundliScores.career.factors.yogaBreakdown.bad && kundliScores.career.factors.yogaBreakdown.bad.length > 0 ? `
+                                <div>
+                                    <strong style="color: #d32f2f;">${language === 'hi' ? 'अशुभ योग' : 'Bad Yogas'}:</strong>
+                                    ${kundliScores.career.factors.yogaBreakdown.bad.map(y => `<div style="margin-left: 15px; margin-top: 4px; color: #666; font-size: 13px;">${y.name}: ${y.points}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                            ${(!kundliScores.career.factors.yogaBreakdown.good || kundliScores.career.factors.yogaBreakdown.good.length === 0) && 
+                              (!kundliScores.career.factors.yogaBreakdown.bad || kundliScores.career.factors.yogaBreakdown.bad.length === 0) ? 
+                              `<span style="color: #999; font-size: 13px;">${language === 'hi' ? 'कोई प्रासंगिक योग नहीं' : 'No relevant yogas'}</span>` : ''}
+                        </div>
+                        ` : ''}
+                        
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #ff9800;">
+                            <strong>${scoreTexts.rawScore}:</strong> ${kundliScores.career.factors.rawTotal >= 0 ? '+' : ''}${kundliScores.career.factors.rawTotal} → 
+                            <strong>${scoreTexts.finalRating}:</strong> ${kundliScores.career.score.toFixed(1)}/10
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.3); border-radius: 6px;">
+                        <p style="color: white; font-size: 12px; margin: 0; line-height: 1.6;">
+                            <strong>${scoreTexts.method}:</strong> ${scoreTexts.methodText}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -429,8 +807,8 @@ function generateStrengthAssessmentSection(planetsData, ascendantSign, language 
     // Generate house lord analysis
     let houseLordHTML = '<div class="strength-house-lord-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin: 30px 0;">';
     
-    // Focus on important houses: 1, 2, 4, 5, 7, 9, 10, 11
-    const importantHouses = [1, 2, 4, 5, 7, 9, 10, 11];
+    // Focus on important houses: 1, 2, 3, 4, 5, 7, 9, 10, 11, 12
+    const importantHouses = [1, 2, 3, 4, 5, 7, 9, 10, 11, 12];
     
     for (const houseNum of importantHouses) {
         const lordStrength = calculateHouseLordStrength(houseNum, ascendantSign, planetsData);
@@ -485,13 +863,14 @@ function generateStrengthAssessmentSection(planetsData, ascendantSign, language 
         <h1 style="color: #1a1a1a; margin-bottom: 30px; font-size: 28px; margin-top: 0;">${texts.title}</h1>
         ${criteriaNote}
         ${overallHTML}
+        ${kundliRatingHTML}
         
         <h2 style="color: #1a1a1a; margin: 40px 0 20px 0; font-size: 22px;">${texts.planetaryAnalysis}</h2>
         ${planetaryHTML}
         
         <h2 style="color: #1a1a1a; margin: 40px 0 20px 0; font-size: 22px;">${texts.houseLordAnalysis}</h2>
         ${houseLordHTML}
-    </section>
+    </div>
     `;
 }
 
@@ -975,137 +1354,258 @@ function analyzeJobTiming(planetsData, ascendantSign, mahaDashaData, language = 
             // Only consider future periods or current period
             if (endDate < now) continue;
             
-            // Check if this dasha is favorable for job
-            let favorabilityScore = 0;
-            let reasons = [];
-            
-            // Check if Mahadasha planet is a job-related lord
-            if (mahaDashaPlanet === sixthLord) {
-                favorabilityScore += 30;
-                reasons.push(`Mahadasha of ${sixthLord} (6th house lord - work/service)`);
-            }
-            if (mahaDashaPlanet === tenthLord) {
-                favorabilityScore += 40;
-                reasons.push(`Mahadasha of ${tenthLord} (10th house lord - career)`);
-            }
-            if (mahaDashaPlanet === eleventhLord) {
-                favorabilityScore += 30;
-                reasons.push(`Mahadasha of ${eleventhLord} (11th house lord - gains)`);
-            }
-            if (mahaDashaPlanet === ascendantLord) {
-                favorabilityScore += 20;
-                reasons.push(`Mahadasha of ${ascendantLord} (Ascendant lord)`);
-            }
-            
-            // Check Antar Dasha planet
-            if (antarDashaPlanet === sixthLord) {
-                favorabilityScore += 25;
-                reasons.push(`Antar Dasha of ${sixthLord} (6th house lord)`);
-            }
-            if (antarDashaPlanet === tenthLord) {
-                favorabilityScore += 35;
-                reasons.push(`Antar Dasha of ${tenthLord} (10th house lord - career)`);
-            }
-            if (antarDashaPlanet === eleventhLord) {
-                favorabilityScore += 25;
-                reasons.push(`Antar Dasha of ${eleventhLord} (11th house lord - gains)`);
-            }
-            if (antarDashaPlanet === ascendantLord) {
-                favorabilityScore += 15;
-                reasons.push(`Antar Dasha of ${ascendantLord} (Ascendant lord)`);
-            }
-            
-            // Check planet strength
+            // Calculate job timing score using structured method
             const mahaPlanetInfo = planetsData[mahaDashaPlanet];
             const antarPlanetInfo = planetsData[antarDashaPlanet];
             
-            if (mahaPlanetInfo) {
-                const shadbala = calculateShadbala(mahaDashaPlanet, mahaPlanetInfo, planetsData, ascendantSign, shadbalaApiData);
-                if (shadbala && shadbala.fromApi) {
-                    // Use Shadbala thresholds: Strong >= 480, Weak < 350
-                    if (shadbala.shadbala >= 480) {
-                        favorabilityScore += 10;
-                        reasons.push(`Strong ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)})`);
-                    } else if (shadbala.shadbala < 350) {
-                        favorabilityScore -= 15;
-                        reasons.push(`Weak ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)}, may cause delays)`);
+            // Get planet dignities
+            const mahaDignity = calculatePlanetaryDignity(mahaDashaPlanet, mahaPlanetInfo);
+            const antarDignity = calculatePlanetaryDignity(antarDashaPlanet, antarPlanetInfo);
+            
+            // Get Shadbala
+            const mahaShadbala = mahaPlanetInfo ? calculateShadbala(mahaDashaPlanet, mahaPlanetInfo, planetsData, ascendantSign, shadbalaApiData) : null;
+            const antarShadbala = antarPlanetInfo ? calculateShadbala(antarDashaPlanet, antarPlanetInfo, planetsData, ascendantSign, shadbalaApiData) : null;
+            
+            // Get houses ruled by each planet
+            const getHousesRuledBy = (planet) => {
+                const houses = [];
+                for (let houseNum = 1; houseNum <= 12; houseNum++) {
+                    const lord = getHouseLord(houseNum);
+                    if (lord === planet) {
+                        houses.push(houseNum);
+                    }
+                }
+                return houses;
+            };
+            
+            const mahaHousesRuled = getHousesRuledBy(mahaDashaPlanet);
+            const antarHousesRuled = getHousesRuledBy(antarDashaPlanet);
+            
+            // Calculate MD_base_score for job (0-40)
+            let mdBaseScore = 0;
+            let mdReasons = [];
+            
+            // 1. Role for career/job (0-20)
+            if (mahaDashaPlanet === tenthLord) {
+                mdBaseScore += 20;
+                mdReasons.push(`MD of ${tenthLord} (10th lord - career source)`);
+            } else if (mahaDashaPlanet === sixthLord) {
+                mdBaseScore += 18;
+                mdReasons.push(`MD of ${sixthLord} (6th lord - work/service)`);
+            } else if (mahaDashaPlanet === eleventhLord) {
+                mdBaseScore += 15;
+                mdReasons.push(`MD of ${eleventhLord} (11th lord - gains)`);
+            } else if (mahaDashaPlanet === ascendantLord) {
+                mdBaseScore += 12;
+                mdReasons.push(`MD of ${ascendantLord} (Lagna lord - overall strength)`);
+            } else {
+                mdBaseScore += 5;
+            }
+            
+            // 2. Dignity of MD lord (0-10 or -5)
+            if (mahaDignity) {
+                if (mahaDignity.isExalted) {
+                    mdBaseScore += 10;
+                    mdReasons.push(`Exalted ${mahaDashaPlanet}`);
+                } else if (mahaDignity.isOwnSign || mahaDignity.isMoolatrikona) {
+                    mdBaseScore += 8;
+                    mdReasons.push(`Own sign ${mahaDashaPlanet}`);
+                } else if (mahaDignity.type === 'friendly') {
+                    mdBaseScore += 4;
+                } else if (mahaDignity.type === 'neutral') {
+                    mdBaseScore += 2;
+                } else if (mahaDignity.isDebilitated) {
+                    mdBaseScore -= 5;
+                    mdReasons.push(`Debilitated ${mahaDashaPlanet} (may cause delays)`);
+                }
+            }
+            
+            // 3. Shadbala of MD lord (0-5)
+            if (mahaShadbala && mahaShadbala.fromApi) {
+                if (mahaShadbala.shadbala >= 480) {
+                    mdBaseScore += 5;
+                    mdReasons.push(`Strong ${mahaDashaPlanet} (Shadbala: ${mahaShadbala.shadbala.toFixed(1)})`);
+                } else if (mahaShadbala.shadbala >= 350) {
+                    mdBaseScore += 2;
+                } else {
+                    mdBaseScore += 0;
+                    mdReasons.push(`Weak ${mahaDashaPlanet} (Shadbala: ${mahaShadbala.shadbala.toFixed(1)})`);
+                }
+            }
+            
+            // 4. Afflictions (-5 to +2)
+            const isMahaRetro = mahaPlanetInfo?.isRetro === true || mahaPlanetInfo?.isRetro === 'true';
+            if (isMahaRetro && MALIFIC_PLANETS.includes(mahaDashaPlanet)) {
+                mdBaseScore -= 5;
+            }
+            
+            mdBaseScore = Math.max(0, Math.min(40, mdBaseScore));
+            
+            // Calculate AD_job_weight (0-40)
+            let adJobWeight = 0;
+            let adReasons = [];
+            
+            // 1. House lordship for job (0-20 or -5)
+            if (antarDashaPlanet === tenthLord) {
+                adJobWeight += 20;
+                adReasons.push(`AD of ${tenthLord} (10th lord - career activation)`);
+            } else if (antarDashaPlanet === sixthLord) {
+                adJobWeight += 18;
+                adReasons.push(`AD of ${sixthLord} (6th lord - work/service)`);
+            } else if (antarDashaPlanet === eleventhLord) {
+                adJobWeight += 15;
+                adReasons.push(`AD of ${eleventhLord} (11th lord - gains)`);
+            } else if (antarDashaPlanet === ascendantLord) {
+                adJobWeight += 12;
+                adReasons.push(`AD of ${ascendantLord} (Lagna lord - capacity)`);
+            } else if (antarDashaPlanet === secondLord) {
+                // 2nd lord can support but context matters
+                adJobWeight += 8;
+                if (antarDashaPlanet === 'Saturn' && antarDignity?.isDebilitated) {
+                    adReasons.push(`AD of ${secondLord} (2nd lord - resources, but afflicted Saturn brings pressure)`);
+                } else {
+                    adReasons.push(`AD of ${secondLord} (2nd lord - resources/wealth)`);
+                }
+            } else if (antarDashaPlanet === seventhLord) {
+                adJobWeight += 5;
+                adReasons.push(`AD of ${seventhLord} (7th lord - partnerships/contracts)`);
+            } else if (antarDashaPlanet === 'Rahu') {
+                // Rahu: foreign/tech roles but unstable
+                adJobWeight += 10;
+                adReasons.push(`AD of Rahu (good for foreign/tech roles, sudden openings, but unstable)`);
+            } else if (antarDashaPlanet === 'Ketu') {
+                // Ketu: detaching, unstable, short-term
+                adJobWeight += 5;
+                adReasons.push(`AD of Ketu (may bring job changes, but unstable, short-term, karmic)`);
+            } else if (antarHousesRuled.includes(8) || antarHousesRuled.includes(12)) {
+                adJobWeight -= 5;
+                adReasons.push(`AD of ${antarDashaPlanet} (rules 8th/12th - obstacles/losses)`);
+            } else {
+                adJobWeight += 3;
+            }
+            
+            // 2. Dignity of AD lord (0-8 or -4)
+            if (antarDignity) {
+                if (antarDignity.isExalted) {
+                    adJobWeight += 8;
+                } else if (antarDignity.isOwnSign || antarDignity.isMoolatrikona) {
+                    adJobWeight += 6;
+                } else if (antarDignity.type === 'friendly') {
+                    adJobWeight += 3;
+                } else if (antarDignity.type === 'neutral') {
+                    adJobWeight += 1;
+                } else if (antarDignity.isDebilitated) {
+                    adJobWeight -= 4;
+                    if (antarDashaPlanet === 'Saturn') {
+                        adReasons.push(`Debilitated Saturn (hard work, pressure, delays)`);
                     }
                 }
             }
             
-            if (antarPlanetInfo) {
-                const shadbala = calculateShadbala(antarDashaPlanet, antarPlanetInfo, planetsData, ascendantSign, shadbalaApiData);
-                if (shadbala && shadbala.fromApi) {
-                    // Use Shadbala thresholds: Strong >= 480, Weak < 350
-                    if (shadbala.shadbala >= 480) {
-                        favorabilityScore += 8;
-                    } else if (shadbala.shadbala < 350) {
-                        favorabilityScore -= 10;
-                    }
+            // 3. Shadbala of AD lord (0-5)
+            if (antarShadbala && antarShadbala.fromApi) {
+                if (antarShadbala.shadbala >= 480) {
+                    adJobWeight += 5;
+                } else if (antarShadbala.shadbala >= 350) {
+                    adJobWeight += 2;
+                } else {
+                    adJobWeight += 0;
                 }
             }
             
-            // Check if 10th lord and Ascendant lord are in conjunction or aspect
-            if (mahaDashaPlanet === tenthLord && antarDashaPlanet === ascendantLord) {
-                favorabilityScore += 20;
-                reasons.push(`10th lord (career) + Ascendant lord combination`);
-            }
-            if (mahaDashaPlanet === ascendantLord && antarDashaPlanet === tenthLord) {
-                favorabilityScore += 20;
-                reasons.push(`Ascendant lord + 10th lord (career) combination`);
-            }
-            
-            // Check house placements
-            if (mahaPlanetInfo) {
-                const mahaHouse = getRelativeHouseNumber(ascendantSign, mahaPlanetInfo.current_sign);
-                if (KENDRA_HOUSES.includes(mahaHouse)) {
-                    favorabilityScore += 10;
-                    reasons.push(`${mahaDashaPlanet} in Kendra house (${mahaHouse})`);
-                }
-                if (mahaHouse === 10) {
-                    favorabilityScore += 15;
-                    reasons.push(`${mahaDashaPlanet} in 10th house (career)`);
-                }
-                if (mahaHouse === 11) {
-                    favorabilityScore += 10;
-                    reasons.push(`${mahaDashaPlanet} in 11th house (gains)`);
-                }
+            // 4. Special handling for Rahu, Ketu, Saturn
+            if (antarDashaPlanet === 'Rahu') {
+                // Rahu adds instability factor
+                adJobWeight = Math.max(0, adJobWeight - 3);
+            } else if (antarDashaPlanet === 'Ketu') {
+                // Ketu adds instability and detachment
+                adJobWeight = Math.max(0, adJobWeight - 5);
+            } else if (antarDashaPlanet === 'Saturn' && antarDignity?.isDebilitated) {
+                // Afflicted Saturn: hard work but stress
+                adJobWeight = Math.max(0, adJobWeight - 3);
             }
             
-            if (antarPlanetInfo) {
-                const antarHouse = getRelativeHouseNumber(ascendantSign, antarPlanetInfo.current_sign);
-                if (KENDRA_HOUSES.includes(antarHouse)) {
-                    favorabilityScore += 8;
+            adJobWeight = Math.max(0, Math.min(40, adJobWeight));
+            
+            // Calculate Synergy score (0-20)
+            let synergyScore = 0;
+            let synergyReasons = [];
+            
+            // 1. Functional friendliness and house linkage
+            const getPlanetaryRelationship = (planet1, planet2) => {
+                if (planet1 === planet2) return 'same';
+                if (planet1 === 'Rahu' || planet1 === 'Ketu' || planet2 === 'Rahu' || planet2 === 'Ketu') {
+                    return 'neutral';
                 }
-                if (antarHouse === 10) {
-                    favorabilityScore += 12;
+                const relationship = PLANETARY_RELATIONSHIPS[planet1];
+                if (!relationship) return 'neutral';
+                if (relationship.friends.includes(planet2)) return 'friend';
+                if (relationship.enemies.includes(planet2)) return 'enemy';
+                return 'neutral';
+            };
+            
+            const relationship = getPlanetaryRelationship(mahaDashaPlanet, antarDashaPlanet);
+            const jobHouses = [6, 10, 11, 1];
+            const mdJobLink = mahaHousesRuled.some(h => jobHouses.includes(h)) || mahaDashaPlanet === sixthLord || mahaDashaPlanet === tenthLord || mahaDashaPlanet === eleventhLord || mahaDashaPlanet === ascendantLord;
+            const adJobLink = antarHousesRuled.some(h => jobHouses.includes(h)) || antarDashaPlanet === sixthLord || antarDashaPlanet === tenthLord || antarDashaPlanet === eleventhLord || antarDashaPlanet === ascendantLord;
+            
+            if (mdJobLink && adJobLink) {
+                if (relationship === 'friend' || (BENEFIC_PLANETS.includes(mahaDashaPlanet) && BENEFIC_PLANETS.includes(antarDashaPlanet))) {
+                    synergyScore += 15;
+                    synergyReasons.push(`Strong job house linkage (10th-6th-11th-lagna combination)`);
+                } else if (relationship === 'neutral') {
+                    synergyScore += 8;
+                } else {
+                    synergyScore += 3;
                 }
-                if (antarHouse === 11) {
-                    favorabilityScore += 8;
-                }
+            } else if (mdJobLink || adJobLink) {
+                synergyScore += 5;
             }
             
-            // Check if benefic planets
-            if (BENEFIC_PLANETS.includes(mahaDashaPlanet)) {
-                favorabilityScore += 10;
-            }
-            if (BENEFIC_PLANETS.includes(antarDashaPlanet)) {
-                favorabilityScore += 8;
-            }
-            
-            // Check 2nd and 7th house lords as supportive factors
-            if (mahaDashaPlanet === secondLord || antarDashaPlanet === secondLord) {
-                favorabilityScore += 8;
-                reasons.push(`Support from 2nd house lord (wealth/resources)`);
-            }
-            if (mahaDashaPlanet === seventhLord || antarDashaPlanet === seventhLord) {
-                favorabilityScore += 5;
-                reasons.push(`Support from 7th house lord (partnerships/contracts)`);
+            // Special combinations
+            if ((mahaDashaPlanet === tenthLord && antarDashaPlanet === ascendantLord) ||
+                (mahaDashaPlanet === ascendantLord && antarDashaPlanet === tenthLord)) {
+                synergyScore += 5;
+                synergyReasons.push(`10th lord + Lagna lord combination`);
             }
             
-            // Check for malefic planets (may cause obstacles)
-            if (MALIFIC_PLANETS.includes(mahaDashaPlanet) && favorabilityScore < 50) {
-                favorabilityScore -= 5;
+            // Negative synergy for 8th/12th involvement
+            if ((mahaHousesRuled.includes(8) || mahaHousesRuled.includes(12)) &&
+                (antarHousesRuled.includes(8) || antarHousesRuled.includes(12))) {
+                synergyScore -= 5;
+            }
+            
+            synergyScore = Math.max(0, Math.min(20, synergyScore));
+            
+            // Final job score: 0.4 * MD_base_score + 0.4 * AD_job_weight + 0.2 * Synergy (scaled to 0-100)
+            const mdScaled = (mdBaseScore / 40) * 100;
+            const adScaled = (adJobWeight / 40) * 100;
+            const synergyScaled = (synergyScore / 20) * 100;
+            let favorabilityScore = 0.4 * mdScaled + 0.4 * adScaled + 0.2 * synergyScaled;
+            
+            // Special adjustments for Rahu and Ketu MD
+            if (mahaDashaPlanet === 'Ketu') {
+                // Ketu MD is detaching and unstable, reduce score
+                favorabilityScore = Math.max(0, favorabilityScore - 10);
+            }
+            
+            // Ensure score is 0-100
+            favorabilityScore = Math.max(0, Math.min(100, Math.round(favorabilityScore)));
+            
+            // Combine reasons
+            let reasons = [...mdReasons, ...adReasons, ...synergyReasons];
+            
+            // Add specific context for Saturn, Rahu, Ketu
+            if (antarDashaPlanet === 'Saturn' && antarDignity?.isDebilitated) {
+                reasons.push(`Afflicted Saturn AD: jobs with heavy responsibility, gains via hard work but with stress, delays, and self-doubt`);
+            }
+            
+            if (antarDashaPlanet === 'Rahu') {
+                reasons.push(`Rahu AD: good for role changes, foreign/tech opportunities, but expect instability`);
+            }
+            
+            if (antarDashaPlanet === 'Ketu' || mahaDashaPlanet === 'Ketu') {
+                reasons.push(`Ketu period: may bring job changes, but unstable, short-term, or consulting roles`);
             }
             
             // Categorize favorability
@@ -1532,87 +2032,311 @@ function analyzeHealthTiming(planetsData, ascendantSign, mahaDashaData, language
             
             if (endDate < now) continue;
             
-            let concernScore = 0;
-            let reasons = [];
-            let prediction = 'neutral';
-            
-            // Health-related house lords
-            if (mahaDashaPlanet === sixthLord) {
-                concernScore += 30;
-                reasons.push(`${sixthLord} Mahadasha (6th house lord - diseases/health challenges)`);
-            }
-            if (mahaDashaPlanet === eighthLord) {
-                concernScore += 35;
-                reasons.push(`${eighthLord} Mahadasha (8th house lord - longevity/health crises)`);
-            }
-            if (mahaDashaPlanet === twelfthLord) {
-                concernScore += 30;
-                reasons.push(`${twelfthLord} Mahadasha (12th house lord - hospitalization/loss of vitality)`);
-            }
-            
-            if (antarDashaPlanet === sixthLord) {
-                concernScore += 25;
-                reasons.push(`${sixthLord} Antar Dasha`);
-            }
-            if (antarDashaPlanet === eighthLord) {
-                concernScore += 30;
-                reasons.push(`${eighthLord} Antar Dasha`);
-            }
-            if (antarDashaPlanet === twelfthLord) {
-                concernScore += 25;
-                reasons.push(`${twelfthLord} Antar Dasha`);
-            }
-            
-            // Check for debilitated planets
+            // Calculate health score using structured method
             const mahaPlanetInfo = planetsData[mahaDashaPlanet];
-            if (mahaPlanetInfo) {
-                const dignity = calculatePlanetaryDignity(mahaDashaPlanet, mahaPlanetInfo);
-                if (dignity && dignity.isDebilitated) {
-                    concernScore += 20;
-                    reasons.push(`Debilitated ${mahaDashaPlanet} may cause health issues`);
+            const antarPlanetInfo = planetsData[antarDashaPlanet];
+            
+            // Get planet dignities
+            const mahaDignity = calculatePlanetaryDignity(mahaDashaPlanet, mahaPlanetInfo);
+            const antarDignity = calculatePlanetaryDignity(antarDashaPlanet, antarPlanetInfo);
+            
+            // Get Shadbala
+            const mahaShadbala = mahaPlanetInfo ? calculateShadbala(mahaDashaPlanet, mahaPlanetInfo, planetsData, ascendantSign, shadbalaApiData) : null;
+            const antarShadbala = antarPlanetInfo ? calculateShadbala(antarDashaPlanet, antarPlanetInfo, planetsData, ascendantSign, shadbalaApiData) : null;
+            
+            // Get houses ruled by each planet
+            const getHousesRuledBy = (planet) => {
+                const houses = [];
+                for (let houseNum = 1; houseNum <= 12; houseNum++) {
+                    const lord = getHouseLord(houseNum);
+                    if (lord === planet) {
+                        houses.push(houseNum);
+                    }
                 }
+                return houses;
+            };
+            
+            const mahaHousesRuled = getHousesRuledBy(mahaDashaPlanet);
+            const antarHousesRuled = getHousesRuledBy(antarDashaPlanet);
+            
+            // Get lagna lord and Jupiter for protection
+            const lagnaLord = getHouseLord(1);
+            const eleventhLord = getHouseLord(11);
+            
+            // Helper: Get generic planetary health effects
+            const getPlanetaryHealthEffect = (planet, isMD = true) => {
+                const isBenefic = BENEFIC_PLANETS.includes(planet);
+                const isMalefic = MALIFIC_PLANETS.includes(planet);
+                const periodType = isMD ? 'MD' : 'AD';
                 
-                const house = getRelativeHouseNumber(ascendantSign, mahaPlanetInfo.current_sign);
-                if (house === 6 || house === 8 || house === 12) {
-                    concernScore += 15;
-                    reasons.push(`${mahaDashaPlanet} in health-related house (${house})`);
+                // General planetary health characteristics
+                const healthEffects = {
+                    'Sun': { risk: 5, desc: 'vitality, heart, eyes, bones - strong Sun enhances health, weak Sun may cause related issues' },
+                    'Moon': { risk: 8, desc: 'emotions, mind, fluids - well-placed Moon brings emotional stability, afflicted Moon causes mood swings and mental health challenges' },
+                    'Mars': { risk: 12, desc: 'energy, accidents, injuries, inflammation, surgeries - strong Mars provides physical strength, weak Mars may result in impulsiveness or accidents' },
+                    'Mercury': { risk: 6, desc: 'intellect, communication, nervous system - favorable Mercury enhances mental clarity, afflicted Mercury can lead to nervous system problems' },
+                    'Jupiter': { risk: -10, desc: 'wisdom, expansion, protection - strong Jupiter protects health and supports recovery, weak Jupiter may cause lack of vitality' },
+                    'Venus': { risk: 4, desc: 'love, beauty, luxury, reproductive health - well-placed Venus enhances well-being, debilitated Venus can lead to overindulgence and related issues' },
+                    'Saturn': { risk: 10, desc: 'discipline, chronic issues, delays, bones, joints - strong Saturn provides perseverance, weak Saturn may cause chronic health issues and slow recovery' },
+                    'Rahu': { risk: 12, desc: 'desires, illusions, sudden health issues, foreign treatments - favorable Rahu can bring innovation in treatment, afflicted Rahu may lead to confusion and unexpected health problems' },
+                    'Ketu': { risk: 15, desc: 'detachment, spirituality, karmic health themes, instability - strong Ketu fosters spiritual growth, weak Ketu can cause disinterest and health instability' }
+                };
+                
+                const effect = healthEffects[planet] || { risk: 3, desc: 'general health influence' };
+                return {
+                    risk: effect.risk,
+                    description: `${planet} ${periodType}: ${effect.desc}`
+                };
+            };
+            
+            // Calculate MD_health_risk_score (0-40) - higher = more risk
+            let mdRiskScore = 0;
+            let mdReasons = [];
+            
+            // 1. Role for health risk based on house lordship (0-20)
+            if (mahaDashaPlanet === eighthLord) {
+                mdRiskScore += 20;
+                mdReasons.push(`MD of ${eighthLord} (8th lord - longevity/health crises, hidden chronic issues)`);
+            } else if (mahaDashaPlanet === sixthLord) {
+                mdRiskScore += 18;
+                const isBenefic = BENEFIC_PLANETS.includes(mahaDashaPlanet);
+                if (isBenefic) {
+                    mdReasons.push(`MD of ${sixthLord} (6th lord - disease potential, but benefic nature helps with good diagnosis/treatment)`);
+                } else {
+                    mdReasons.push(`MD of ${sixthLord} (6th lord - diseases/health challenges)`);
+                }
+            } else if (mahaDashaPlanet === twelfthLord) {
+                mdRiskScore += 18;
+                mdReasons.push(`MD of ${twelfthLord} (12th lord - hospitalization/loss of vitality)`);
+            } else {
+                // Use generic planetary health effect
+                const healthEffect = getPlanetaryHealthEffect(mahaDashaPlanet, true);
+                mdRiskScore += Math.max(0, healthEffect.risk);
+                if (healthEffect.risk > 5) {
+                    mdReasons.push(healthEffect.description);
+                } else if (healthEffect.risk < 0) {
+                    mdRiskScore += healthEffect.risk; // Negative for protection
+                    mdReasons.push(healthEffect.description);
                 }
             }
             
-            // Check malefic planets (Saturn, Rahu, Ketu)
-            if (['Saturn', 'Rahu', 'Ketu'].includes(mahaDashaPlanet)) {
-                concernScore += 15;
-                reasons.push(`Malefic ${mahaDashaPlanet} period may trigger health concerns`);
+            // 2. Dignity of MD lord (0-10 or -5)
+            if (mahaDignity) {
+                if (mahaDignity.isDebilitated) {
+                    mdRiskScore += 10;
+                    mdReasons.push(`Debilitated ${mahaDashaPlanet} increases health vulnerability`);
+                } else if (mahaDignity.isExalted) {
+                    mdRiskScore -= 5;
+                } else if (mahaDignity.isOwnSign || mahaDignity.isMoolatrikona) {
+                    mdRiskScore -= 3;
+                }
             }
             
-            // Benefic planets can improve health
-            if (['Jupiter'].includes(mahaDashaPlanet)) {
-                concernScore -= 20;
-                reasons.push(`Jupiter Mahadasha can improve health and provide recovery`);
-            }
-            if (['Jupiter'].includes(antarDashaPlanet)) {
-                concernScore -= 15;
-                reasons.push(`Jupiter Antar Dasha supports recovery`);
+            // 3. Shadbala of MD lord (0-5)
+            if (mahaShadbala && mahaShadbala.fromApi) {
+                if (mahaShadbala.shadbala < 350) {
+                    mdRiskScore += 5;
+                    mdReasons.push(`Weak ${mahaDashaPlanet} (Shadbala: ${mahaShadbala.shadbala.toFixed(1)}) increases risk`);
+                } else if (mahaShadbala.shadbala >= 480) {
+                    mdRiskScore -= 3;
+                    mdReasons.push(`Strong ${mahaDashaPlanet} (Shadbala: ${mahaShadbala.shadbala.toFixed(1)}) mitigates risks`);
+                }
             }
             
-            // Check planet strength (reuse mahaPlanetInfo already declared above)
+            // 4. MD planet in health-related house
             if (mahaPlanetInfo) {
-                const shadbala = calculateShadbala(mahaDashaPlanet, mahaPlanetInfo, planetsData, ascendantSign, shadbalaApiData);
-                if (shadbala && shadbala.fromApi) {
-                    // Use Shadbala value and categorize: Strong >= 480, Weak < 350, Moderate 350-479
-                    if (shadbala.shadbala < 350) {
-                        concernScore += 15;
-                        reasons.push(`Weak ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)}) increases health vulnerability`);
-                    } else if (shadbala.shadbala >= 480) {
-                        concernScore -= 10;
-                        reasons.push(`Strong ${mahaDashaPlanet} (Shadbala: ${shadbala.shadbala.toFixed(1)}) mitigates health risks`);
+                const mahaHouse = getRelativeHouseNumber(ascendantSign, mahaPlanetInfo.current_sign);
+                if (mahaHouse === 6 || mahaHouse === 8 || mahaHouse === 12) {
+                    mdRiskScore += 8;
+                    mdReasons.push(`${mahaDashaPlanet} in health-related house (${mahaHouse})`);
+                }
+            }
+            
+            mdRiskScore = Math.max(0, Math.min(40, mdRiskScore));
+            
+            // Calculate AD_health_weight (0-40) - higher = more risk
+            let adRiskWeight = 0;
+            let adReasons = [];
+            
+            // 1. House lordship for health (0-20)
+            if (antarDashaPlanet === eighthLord) {
+                adRiskWeight += 20;
+                adReasons.push(`AD of ${eighthLord} (8th lord - hidden/chronic health themes, longevity issues)`);
+            } else if (antarDashaPlanet === sixthLord) {
+                const isBenefic = BENEFIC_PLANETS.includes(antarDashaPlanet);
+                if (isBenefic) {
+                    adRiskWeight += 12; // Lower risk if benefic
+                    adReasons.push(`AD of ${sixthLord} (6th lord - disease potential, but benefic nature helps with good diagnosis/treatment/recovery)`);
+                } else {
+                    adRiskWeight += 18;
+                    adReasons.push(`AD of ${sixthLord} (6th lord - diseases/health challenges)`);
+                }
+            } else if (antarDashaPlanet === twelfthLord) {
+                adRiskWeight += 18;
+                adReasons.push(`AD of ${twelfthLord} (12th lord - hospitalization/loss of vitality)`);
+            } else {
+                // Use generic planetary health effect
+                const healthEffect = getPlanetaryHealthEffect(antarDashaPlanet, false);
+                adRiskWeight += Math.max(0, healthEffect.risk);
+                if (healthEffect.risk > 5) {
+                    adReasons.push(healthEffect.description);
+                } else if (healthEffect.risk < 0) {
+                    adRiskWeight += healthEffect.risk; // Negative for protection
+                    adReasons.push(healthEffect.description);
+                } else {
+                    // For moderate risk planets, add context based on nature
+                    if (BENEFIC_PLANETS.includes(antarDashaPlanet)) {
+                        adReasons.push(`AD of ${antarDashaPlanet} (benefic, generally supportive of health)`);
+                    } else if (MALIFIC_PLANETS.includes(antarDashaPlanet)) {
+                        adReasons.push(`AD of ${antarDashaPlanet} (malefic, may require more attention to health)`);
                     }
                 }
             }
             
-            // Determine prediction (lower concern score = better health)
-            const healthScore = 100 - Math.min(100, concernScore);
+            // Check if AD planet is in 8th house (adds risk)
+            if (antarPlanetInfo) {
+                const antarHouse = getRelativeHouseNumber(ascendantSign, antarPlanetInfo.current_sign);
+                if (antarHouse === 8) {
+                    adRiskWeight += 5;
+                    adReasons.push(`${antarDashaPlanet} in 8th house (increases health sensitivity)`);
+                }
+            }
             
+            // 2. Dignity of AD lord (0-8 or -4)
+            if (antarDignity) {
+                if (antarDignity.isDebilitated) {
+                    adRiskWeight += 8;
+                    adReasons.push(`Debilitated ${antarDashaPlanet} increases health vulnerability`);
+                } else if (antarDignity.isExalted) {
+                    adRiskWeight -= 4;
+                } else if (antarDignity.isOwnSign || antarDignity.isMoolatrikona) {
+                    adRiskWeight -= 2;
+                }
+            }
+            
+            // 3. Shadbala of AD lord (0-5)
+            if (antarShadbala && antarShadbala.fromApi) {
+                if (antarShadbala.shadbala < 350) {
+                    adRiskWeight += 5;
+                } else if (antarShadbala.shadbala >= 480) {
+                    adRiskWeight -= 3;
+                }
+            }
+            
+            // 4. AD planet in health-related house
+            if (antarPlanetInfo) {
+                const antarHouse = getRelativeHouseNumber(ascendantSign, antarPlanetInfo.current_sign);
+                if (antarHouse === 6 || antarHouse === 8 || antarHouse === 12) {
+                    adRiskWeight += 8;
+                    adReasons.push(`${antarDashaPlanet} in health-related house (${antarHouse})`);
+                }
+            }
+            
+            adRiskWeight = Math.max(0, Math.min(40, adRiskWeight));
+            
+            // Calculate Protection/Synergy score (0-20) - higher = more protection
+            let protectionScore = 0;
+            let protectionReasons = [];
+            
+            // 1. Jupiter protection (Jupiter is the natural protector of health)
+            if (mahaDashaPlanet === 'Jupiter' || antarDashaPlanet === 'Jupiter') {
+                protectionScore += 15;
+                protectionReasons.push(`Jupiter protection (supports health and recovery)`);
+            }
+            
+            // 2. Lagna lord support (overall vitality)
+            if (mahaDashaPlanet === lagnaLord || antarDashaPlanet === lagnaLord) {
+                protectionScore += 8;
+                protectionReasons.push(`Lagna lord support (overall strength and vitality)`);
+            }
+            
+            // 3. Benefic nature (benefic planets generally support health)
+            const mahaIsBenefic = BENEFIC_PLANETS.includes(mahaDashaPlanet);
+            const adIsBenefic = BENEFIC_PLANETS.includes(antarDashaPlanet);
+            if (mahaIsBenefic && adIsBenefic) {
+                protectionScore += 5;
+                protectionReasons.push(`Both benefic planets (generally supportive of health)`);
+            } else if (mahaIsBenefic || adIsBenefic) {
+                protectionScore += 3;
+                protectionReasons.push(`Benefic planet support (helps mitigate health risks)`);
+            }
+            
+            // 4. Strong planets (exalted/own sign) provide protection
+            if (mahaDignity && (mahaDignity.isExalted || mahaDignity.isOwnSign || mahaDignity.isMoolatrikona)) {
+                protectionScore += 3;
+            }
+            if (antarDignity && (antarDignity.isExalted || antarDignity.isOwnSign || antarDignity.isMoolatrikona)) {
+                protectionScore += 2;
+            }
+            
+            // 5. Negative: Both malefic and both rule health houses
+            const mahaIsMalefic = MALIFIC_PLANETS.includes(mahaDashaPlanet);
+            const adIsMalefic = MALIFIC_PLANETS.includes(antarDashaPlanet);
+            if (mahaIsMalefic && adIsMalefic) {
+                const healthHouses = [6, 8, 12];
+                const mdRulesHealth = mahaHousesRuled.some(h => healthHouses.includes(h));
+                const adRulesHealth = antarHousesRuled.some(h => healthHouses.includes(h));
+                if (mdRulesHealth && adRulesHealth) {
+                    protectionScore -= 5;
+                    protectionReasons.push(`Both malefic planets ruling health houses (increased vulnerability)`);
+                }
+            }
+            
+            protectionScore = Math.max(0, Math.min(20, protectionScore));
+            
+            // Special adjustments based on planetary combinations
+            // Ketu MD/AD increases health sensitivity (karmic, unstable)
+            if (mahaDashaPlanet === 'Ketu') {
+                adRiskWeight = Math.min(40, adRiskWeight + 5);
+            }
+            if (antarDashaPlanet === 'Ketu') {
+                adRiskWeight = Math.min(40, adRiskWeight + 3);
+            }
+            
+            // If MD lord is also 6th lord (disease house), add caution
+            if (mahaDashaPlanet === sixthLord) {
+                mdRiskScore = Math.min(40, mdRiskScore + 2);
+                if (!mdReasons.some(r => r.includes('6th lord'))) {
+                    mdReasons.push(`${mahaDashaPlanet} MD as 6th lord: watch more carefully for health tests`);
+                }
+            }
+            
+            // If both MD and AD are 6th/8th/12th lords, increase risk
+            const healthHouses = [6, 8, 12];
+            const mdIsHealthLord = mahaHousesRuled.some(h => healthHouses.includes(h));
+            const adIsHealthLord = antarHousesRuled.some(h => healthHouses.includes(h));
+            if (mdIsHealthLord && adIsHealthLord) {
+                adRiskWeight = Math.min(40, adRiskWeight + 3);
+                adReasons.push(`Both MD and AD lords rule health-related houses - increased health sensitivity`);
+            }
+            
+            // Final health score: 100 - (risk components) + (protection)
+            // Risk: 0.4 * MD_risk + 0.4 * AD_risk - 0.2 * Protection (scaled)
+            const mdRiskScaled = (mdRiskScore / 40) * 100;
+            const adRiskScaled = (adRiskWeight / 40) * 100;
+            const protectionScaled = (protectionScore / 20) * 100;
+            
+            let healthScore = 100 - (0.4 * mdRiskScaled + 0.4 * adRiskScaled) + (0.2 * protectionScaled);
+            
+            // Ensure score is 0-100
+            healthScore = Math.max(0, Math.min(100, Math.round(healthScore)));
+            
+            // Combine reasons
+            let reasons = [...mdReasons, ...adReasons, ...protectionReasons];
+            
+            // Add specific context for same planet MD+AD in health houses
+            if (mahaDashaPlanet === antarDashaPlanet) {
+                if (mahaDashaPlanet === sixthLord) {
+                    reasons.push(`${mahaDashaPlanet} MD + ${antarDashaPlanet} AD (both 6th lord): heightened disease potential but ${BENEFIC_PLANETS.includes(mahaDashaPlanet) ? 'benefic nature helps with good treatment/diagnosis' : 'requires careful monitoring'} - watch more carefully`);
+                } else if (mahaDashaPlanet === eighthLord) {
+                    reasons.push(`${mahaDashaPlanet} MD + ${antarDashaPlanet} AD (both 8th lord): significant health sensitivity period - monitor chronic/hidden issues`);
+                } else if (mahaDashaPlanet === twelfthLord) {
+                    reasons.push(`${mahaDashaPlanet} MD + ${antarDashaPlanet} AD (both 12th lord): increased risk of hospitalization or loss of vitality`);
+                }
+            }
+            
+            // Determine prediction
+            let prediction = 'neutral';
             if (healthScore >= 75) {
                 prediction = 'excellent';
             } else if (healthScore >= 60) {
@@ -1624,6 +2348,9 @@ function analyzeHealthTiming(planetsData, ascendantSign, mahaDashaData, language
             } else {
                 prediction = 'challenging';
             }
+            
+            // For backward compatibility, calculate concernScore
+            const concernScore = 100 - healthScore;
             
             if (concernScore >= 20 || healthPlanets.includes(mahaDashaPlanet) || healthPlanets.includes(antarDashaPlanet)) {
                 healthPeriods.push({
@@ -2149,25 +2876,332 @@ function getPlanetPlacementInfo(planet, planetsData, ascendantSign, shadbalaApiD
     return { sign, house, isRetro, shadbala };
 }
 
-// Dasa Predictions Analysis - Stepwise approach
+// Dasa Predictions Analysis - Stepwise approach following the guide
 function analyzeDasaPredictions(dasaInfo, planetsData, ascendantSign, language = 'en', shadbalaApiData = null) {
     if (!dasaInfo || !planetsData || !ascendantSign) return null;
     
-    // Get house lords
+    // Helper: Get house lord for a given house number
     const getHouseLord = (houseNum) => {
         let houseSign = ascendantSign + houseNum - 1;
         if (houseSign > 12) houseSign -= 12;
         return ZODIAC_LORDS[houseSign];
     };
     
-    const secondLord = getHouseLord(2);  // Finance
-    const sixthLord = getHouseLord(6);   // Job
-    const seventhLord = getHouseLord(7); // Relationships
-    const tenthLord = getHouseLord(10);  // Career
-    const eleventhLord = getHouseLord(11); // Gains
-    const ascendantLord = getHouseLord(1);
+    // Helper: Find which houses a planet rules
+    const getHousesRuledBy = (planet) => {
+        const houses = [];
+        for (let houseNum = 1; houseNum <= 12; houseNum++) {
+            const lord = getHouseLord(houseNum);
+            if (lord === planet) {
+                houses.push(houseNum);
+            }
+        }
+        return houses;
+    };
     
-    // Extract Dasa information with dates
+    // Helper: Get relationship between two planets
+    const getPlanetaryRelationship = (planet1, planet2) => {
+        if (planet1 === planet2) return 'same';
+        if (planet1 === 'Rahu' || planet1 === 'Ketu' || planet2 === 'Rahu' || planet2 === 'Ketu') {
+            return 'neutral'; // Rahu/Ketu relationships not defined in standard system
+        }
+        const relationship = PLANETARY_RELATIONSHIPS[planet1];
+        if (!relationship) return 'neutral';
+        if (relationship.friends.includes(planet2)) return 'friend';
+        if (relationship.enemies.includes(planet2)) return 'enemy';
+        return 'neutral';
+    };
+    
+    // Helper: Check if planet is yogakaraka (functional benefic)
+    const isYogakaraka = (planet, ascendantSign) => {
+        // Simplified: Jupiter and Venus are generally benefic, but this should be chart-specific
+        // For now, we'll check if it's a natural benefic
+        return ['Jupiter', 'Venus', 'Mercury'].includes(planet);
+    };
+    
+    // Helper: Check if planet is malefic
+    const isMalefic = (planet) => {
+        return ['Mars', 'Saturn', 'Sun'].includes(planet);
+    };
+    
+    // Helper: Check if a planet aspects a house
+    const checkPlanetAspectsHouse = (planet, planetHouse, targetHouse) => {
+        const aspects = ASPECT_PATTERNS.getAspects(planet, planetHouse, planetsData[planet]?.current_sign);
+        return aspects[targetHouse] !== undefined;
+    };
+    
+    // Helper: Check if two planets are in conjunction (same house)
+    const arePlanetsConjunct = (planet1, planet2) => {
+        const house1 = getRelativeHouseNumber(ascendantSign, planetsData[planet1]?.current_sign);
+        const house2 = getRelativeHouseNumber(ascendantSign, planetsData[planet2]?.current_sign);
+        return house1 === house2;
+    };
+    
+    // Helper: Check if planets have exchange (mutual aspect or conjunction with each other's houses)
+    const havePlanetaryExchange = (planet1, planet2) => {
+        const houses1 = getHousesRuledBy(planet1);
+        const houses2 = getHousesRuledBy(planet2);
+        const house1 = getRelativeHouseNumber(ascendantSign, planetsData[planet1]?.current_sign);
+        const house2 = getRelativeHouseNumber(ascendantSign, planetsData[planet2]?.current_sign);
+        
+        // Check if planet1 aspects planet2's house or vice versa
+        if (checkPlanetAspectsHouse(planet1, house1, house2) || checkPlanetAspectsHouse(planet2, house2, house1)) {
+            return true;
+        }
+        
+        // Check if planet1 is in planet2's ruled house or vice versa
+        if (houses2.includes(house1) || houses1.includes(house2)) {
+            return true;
+        }
+        
+        return false;
+    };
+    
+    // Helper: Count malefic aspects on a planet
+    const countMaleficAspects = (planet) => {
+        if (!planetsData[planet]) return 0;
+        const planetHouse = getRelativeHouseNumber(ascendantSign, planetsData[planet].current_sign);
+        let maleficCount = 0;
+        
+        for (const [otherPlanet, otherInfo] of Object.entries(planetsData)) {
+            if (otherPlanet === planet || otherPlanet === 'Ascendant' || otherPlanet === 'ayanamsa') continue;
+            if (!otherInfo.current_sign) continue;
+            
+            const otherHouse = getRelativeHouseNumber(ascendantSign, otherInfo.current_sign);
+            const aspects = ASPECT_PATTERNS.getAspects(otherPlanet, otherHouse, otherInfo.current_sign);
+            
+            if (aspects[planetHouse] && MALIFIC_PLANETS.includes(otherPlanet)) {
+                maleficCount++;
+            }
+        }
+        
+        return maleficCount;
+    };
+    
+    // Helper: Count benefic aspects on a planet
+    const countBeneficAspects = (planet) => {
+        if (!planetsData[planet]) return 0;
+        const planetHouse = getRelativeHouseNumber(ascendantSign, planetsData[planet].current_sign);
+        let beneficCount = 0;
+        
+        for (const [otherPlanet, otherInfo] of Object.entries(planetsData)) {
+            if (otherPlanet === planet || otherPlanet === 'Ascendant' || otherPlanet === 'ayanamsa') continue;
+            if (!otherInfo.current_sign) continue;
+            
+            const otherHouse = getRelativeHouseNumber(ascendantSign, otherInfo.current_sign);
+            const aspects = ASPECT_PATTERNS.getAspects(otherPlanet, otherHouse, otherInfo.current_sign);
+            
+            if (aspects[planetHouse] && BENEFIC_PLANETS.includes(otherPlanet)) {
+                beneficCount++;
+            }
+        }
+        
+        return beneficCount;
+    };
+    
+    // Calculate MD_base_score (0-40) for money/finance
+    const calculateMDBaseScore = (mdPlanet, mdHousesRuled, mdDignity, mdShadbala, mdPlanetInfo) => {
+        let score = 0;
+        
+        // 1. Role for career/finance (0-20)
+        const tenthLord = getHouseLord(10);
+        const secondLord = getHouseLord(2);
+        const eleventhLord = getHouseLord(11);
+        const ninthLord = getHouseLord(9);
+        const lagnaLord = getHouseLord(1);
+        
+        if (mdPlanet === tenthLord || mdPlanet === secondLord || mdPlanet === eleventhLord) {
+            score += 20;
+        } else if (mdPlanet === ninthLord || mdPlanet === lagnaLord) {
+            score += 10;
+        } else {
+            score += 5;
+        }
+        
+        // 2. Dignity of MD lord (0-10 or -5)
+        if (mdDignity) {
+            if (mdDignity.isExalted) {
+                score += 10;
+            } else if (mdDignity.isOwnSign || mdDignity.isMoolatrikona) {
+                score += 8;
+            } else if (mdDignity.type === 'friendly') {
+                score += 4;
+            } else if (mdDignity.type === 'neutral') {
+                score += 2;
+            } else if (mdDignity.type === 'enemy') {
+                score += 0;
+            } else if (mdDignity.isDebilitated) {
+                score -= 5;
+            }
+        }
+        
+        // 3. Shadbala of MD lord (0-5)
+        if (mdShadbala) {
+            if (mdShadbala.category === 'Strong' || (mdShadbala.value && mdShadbala.value >= 480)) {
+                score += 5;
+            } else if (mdShadbala.category === 'Moderate' || (mdShadbala.value && mdShadbala.value >= 350)) {
+                score += 2;
+            } else {
+                score += 0;
+            }
+        }
+        
+        // 4. Affliction of MD lord (-5 to +2)
+        const isRetro = mdPlanetInfo?.isRetro === true || mdPlanetInfo?.isRetro === 'true';
+        if (isRetro && isMalefic(mdPlanet)) {
+            score -= 5;
+        }
+        
+        const maleficAspectCount = countMaleficAspects(mdPlanet);
+        if (maleficAspectCount >= 2 || (maleficAspectCount >= 1 && (mdPlanet === 'Saturn' || mdPlanet === 'Rahu'))) {
+            score -= 3;
+        }
+        
+        const beneficAspectCount = countBeneficAspects(mdPlanet);
+        if (beneficAspectCount >= 1) {
+            score += 2;
+        }
+        
+        // Clip to 0-40
+        return Math.max(0, Math.min(40, score));
+    };
+    
+    // Calculate AD_money_weight (0-40) for money/finance
+    const calculateADMoneyWeight = (adPlanet, adHousesRuled, adDignity, adPlanetInfo) => {
+        let score = 0;
+        
+        // 1. House lordship for money (0-20 or -5)
+        const secondLord = getHouseLord(2);
+        const eleventhLord = getHouseLord(11);
+        const ninthLord = getHouseLord(9);
+        const fifthLord = getHouseLord(5);
+        const lagnaLord = getHouseLord(1);
+        const sixthLord = getHouseLord(6);
+        const tenthLord = getHouseLord(10);
+        const eighthLord = getHouseLord(8);
+        const twelfthLord = getHouseLord(12);
+        
+        if (adPlanet === secondLord || adPlanet === eleventhLord) {
+            score += 20;
+        } else if (adPlanet === ninthLord || adPlanet === fifthLord || adPlanet === lagnaLord) {
+            score += 12;
+        } else if (adPlanet === sixthLord || adPlanet === tenthLord) {
+            score += 8;
+        } else if (adPlanet === eighthLord || adPlanet === twelfthLord) {
+            score -= 5;
+        } else {
+            score += 5;
+        }
+        
+        // 2. Dignity of AD lord (0-8 or -4)
+        if (adDignity) {
+            if (adDignity.isExalted) {
+                score += 8;
+            } else if (adDignity.isOwnSign || adDignity.isMoolatrikona) {
+                score += 6;
+            } else if (adDignity.type === 'friendly') {
+                score += 3;
+            } else if (adDignity.type === 'neutral') {
+                score += 1;
+            } else if (adDignity.type === 'enemy') {
+                score -= 1;
+            } else if (adDignity.isDebilitated) {
+                score -= 4;
+            }
+        }
+        
+        // 3. Afflictions/beneficence of AD lord (-4 to +3)
+        const isRetro = adPlanetInfo?.isRetro === true || adPlanetInfo?.isRetro === 'true';
+        if (isRetro && isMalefic(adPlanet)) {
+            score -= 4;
+        }
+        
+        const beneficAspectCount = countBeneficAspects(adPlanet);
+        if (beneficAspectCount >= 1) {
+            score += 3;
+        }
+        
+        const maleficAspectCount = countMaleficAspects(adPlanet);
+        if (maleficAspectCount >= 1) {
+            score -= 3;
+        }
+        
+        // Clip to 0-40
+        return Math.max(0, Math.min(40, score));
+    };
+    
+    // Calculate Synergy score (0-20) between MD and AD
+    const calculateSynergyScore = (mdPlanet, adPlanet, mdHousesRuled, adHousesRuled) => {
+        let score = 0;
+        
+        // 1. Functional friendliness (0-15 or -5)
+        const relationship = getPlanetaryRelationship(mdPlanet, adPlanet);
+        const mdIsBenefic = BENEFIC_PLANETS.includes(mdPlanet);
+        const adIsBenefic = BENEFIC_PLANETS.includes(adPlanet);
+        
+        // Check if both are benefics or mutual friends, and linked to 2/11/10 by aspect/conjunction
+        const secondLord = getHouseLord(2);
+        const eleventhLord = getHouseLord(11);
+        const tenthLord = getHouseLord(10);
+        
+        const mdLinkedToMoney = mdHousesRuled.includes(2) || mdHousesRuled.includes(11) || mdPlanet === secondLord || mdPlanet === eleventhLord || mdPlanet === tenthLord;
+        const adLinkedToMoney = adHousesRuled.includes(2) || adHousesRuled.includes(11) || adPlanet === secondLord || adPlanet === eleventhLord || adPlanet === tenthLord;
+        
+        if ((relationship === 'friend' || (mdIsBenefic && adIsBenefic)) && (mdLinkedToMoney || adLinkedToMoney)) {
+            // Check if they aspect or conjunct each other
+            if (arePlanetsConjunct(mdPlanet, adPlanet) || havePlanetaryExchange(mdPlanet, adPlanet)) {
+                score += 15;
+            } else {
+                score += 10;
+            }
+        } else if (relationship === 'neutral') {
+            score += 5;
+        } else if (relationship === 'enemy') {
+            // Check if involved in 6-8, 2-12 type relationships
+            const sixthLord = getHouseLord(6);
+            const eighthLord = getHouseLord(8);
+            const twelfthLord = getHouseLord(12);
+            if ((mdHousesRuled.includes(6) || mdHousesRuled.includes(8)) || 
+                (adHousesRuled.includes(6) || adHousesRuled.includes(8)) ||
+                (mdPlanet === sixthLord && adPlanet === eighthLord) ||
+                (mdHousesRuled.includes(2) && adHousesRuled.includes(12)) ||
+                (mdHousesRuled.includes(12) && adHousesRuled.includes(2))) {
+                score -= 5;
+            } else {
+                score += 0;
+            }
+        }
+        
+        // 2. House linkage for money (0-5 or -5)
+        const ninthLord = getHouseLord(9);
+        const eighthLord = getHouseLord(8);
+        const twelfthLord = getHouseLord(12);
+        
+        // Direct link between 2nd, 11th, 10th, 9th lords
+        const moneyHouses = [2, 11, 10, 9];
+        const mdMoneyLink = mdHousesRuled.some(h => moneyHouses.includes(h)) || mdPlanet === secondLord || mdPlanet === eleventhLord || mdPlanet === tenthLord || mdPlanet === ninthLord;
+        const adMoneyLink = adHousesRuled.some(h => moneyHouses.includes(h)) || adPlanet === secondLord || adPlanet === eleventhLord || adPlanet === tenthLord || adPlanet === ninthLord;
+        
+        if (mdMoneyLink && adMoneyLink) {
+            // Check if they aspect or conjunct
+            if (arePlanetsConjunct(mdPlanet, adPlanet) || havePlanetaryExchange(mdPlanet, adPlanet)) {
+                score += 5;
+            } else {
+                score += 3;
+            }
+        }
+        
+        // Involving 8th or 12th lord heavily
+        if ((mdHousesRuled.includes(8) || mdHousesRuled.includes(12) || mdPlanet === eighthLord || mdPlanet === twelfthLord) &&
+            (adHousesRuled.includes(8) || adHousesRuled.includes(12) || adPlanet === eighthLord || adPlanet === twelfthLord)) {
+            score -= 5;
+        }
+        
+        // Clip to 0-20
+        return Math.max(0, Math.min(20, score));
+    };
+    
+    // Extract Dasa information
     const mahaDasaInfo = dasaInfo.maha_dasa;
     const antarDasaInfo = dasaInfo.antar_dasa;
     const pratyantarDasaInfo = dasaInfo.pratyantar_dasa;
@@ -2184,9 +3218,30 @@ function analyzeDasaPredictions(dasaInfo, planetsData, ascendantSign, language =
     const pratyantarThemes = PLANET_THEMES[pratyantarDasa] || {};
     const sookshmaThemes = PLANET_THEMES[sookshmaDasa] || {};
     
-    // Get planet placement info
+    // Get planet placement and dignity info
     const mahaPlacement = getPlanetPlacementInfo(mahaDasa, planetsData, ascendantSign, shadbalaApiData);
     const antarPlacement = getPlanetPlacementInfo(antarDasa, planetsData, ascendantSign, shadbalaApiData);
+    const pratyantarPlacement = getPlanetPlacementInfo(pratyantarDasa, planetsData, ascendantSign, shadbalaApiData);
+    const sookshmaPlacement = getPlanetPlacementInfo(sookshmaDasa, planetsData, ascendantSign, shadbalaApiData);
+    
+    const mahaPlanetInfo = planetsData[mahaDasa];
+    const antarPlanetInfo = planetsData[antarDasa];
+    const pratyantarPlanetInfo = planetsData[pratyantarDasa];
+    const sookshmaPlanetInfo = planetsData[sookshmaDasa];
+    
+    const mahaDignity = calculatePlanetaryDignity(mahaDasa, mahaPlanetInfo);
+    const antarDignity = calculatePlanetaryDignity(antarDasa, antarPlanetInfo);
+    const pratyantarDignity = calculatePlanetaryDignity(pratyantarDasa, pratyantarPlanetInfo);
+    const sookshmaDignity = calculatePlanetaryDignity(sookshmaDasa, sookshmaPlanetInfo);
+    
+    // Get houses ruled by each dasha lord
+    const mahaHousesRuled = getHousesRuledBy(mahaDasa);
+    const antarHousesRuled = getHousesRuledBy(antarDasa);
+    const pratyantarHousesRuled = getHousesRuledBy(pratyantarDasa);
+    const sookshmaHousesRuled = getHousesRuledBy(sookshmaDasa);
+    
+    // Get relationship between MD and AD
+    const mdAdRelationship = getPlanetaryRelationship(mahaDasa, antarDasa);
     
     // Calculate duration helper
     const calculateDuration = (startTime, endTime) => {
@@ -2226,33 +3281,64 @@ function analyzeDasaPredictions(dasaInfo, planetsData, ascendantSign, language =
         return remedies[planet] || 'Practice meditation and maintain positive attitude';
     };
     
-    // Helper to analyze aspect relevance
-    const analyzeAspect = (planet, houseLords) => {
-        const isFinanceLord = planet === houseLords.secondLord || planet === houseLords.tenthLord || planet === houseLords.eleventhLord;
-        const isJobLord = planet === houseLords.sixthLord || planet === houseLords.tenthLord || planet === houseLords.eleventhLord || planet === houseLords.ascendantLord;
-        const isRelationLord = planet === houseLords.seventhLord || planet === 'Venus';
-        return { isFinanceLord, isJobLord, isRelationLord };
+    // STEP 1: Analyze Mahadasha (MD) - Sets overall theme
+    const mahaDasaAnalysis = {
+        housesRuled: mahaHousesRuled,
+        placement: mahaPlacement,
+        dignity: mahaDignity,
+        isYogakaraka: isYogakaraka(mahaDasa, ascendantSign),
+        isMalefic: isMalefic(mahaDasa),
+        strength: mahaPlacement?.shadbala?.category || (mahaDignity?.strength >= 60 ? 'Strong' : mahaDignity?.strength < 40 ? 'Weak' : 'Moderate'),
+        broadQuality: mahaThemes.themes || '',
+        majorEvents: mahaThemes.career || mahaThemes.finance || '',
+        environment: mahaThemes.relationships || ''
     };
     
-    const houseLords = { secondLord, sixthLord, seventhLord, tenthLord, eleventhLord, ascendantLord };
-    const mahaAspect = analyzeAspect(mahaDasa, houseLords);
-    const antarAspect = analyzeAspect(antarDasa, houseLords);
-    const pratyantarAspect = analyzeAspect(pratyantarDasa, houseLords);
-    const sookshmaAspect = analyzeAspect(sookshmaDasa, houseLords);
+    // STEP 2: Analyze Antardasha (AD) - Fine-tunes MD area
+    const antarDasaAnalysis = {
+        housesRuled: antarHousesRuled,
+        placement: antarPlacement,
+        dignity: antarDignity,
+        relationshipWithMD: mdAdRelationship,
+        supportsMD: mdAdRelationship === 'friend' || mdAdRelationship === 'same',
+        specificArea: antarThemes.themes || '',
+        concreteEvents: antarThemes.career || antarThemes.finance || ''
+    };
     
-    // Step 1-4: Collect stepwise information
+    // STEP 3: Analyze Pratyantar Dasha (PD) - Event trigger level
+    const pratyantarDasaAnalysis = {
+        housesRuled: pratyantarHousesRuled,
+        placement: pratyantarPlacement,
+        dignity: pratyantarDignity,
+        linkWithMD: getPlanetaryRelationship(mahaDasa, pratyantarDasa),
+        linkWithAD: getPlanetaryRelationship(antarDasa, pratyantarDasa),
+        eventTrigger: pratyantarThemes.themes || '',
+        timing: pratyantarThemes.career || pratyantarThemes.finance || ''
+    };
+    
+    // STEP 4: Analyze Sookshma Dasha (SD) - Mood/tone indicator
+    const sookshmaDasaAnalysis = {
+        housesRuled: sookshmaHousesRuled,
+        placement: sookshmaPlacement,
+        dignity: sookshmaDignity,
+        mood: sookshmaThemes.themes || '',
+        smoothOrStressful: sookshmaDignity?.strength >= 60 ? 'Smooth' : sookshmaDignity?.strength < 40 ? 'Stressful' : 'Moderate',
+        supportOrBlock: sookshmaDignity?.strength >= 60 ? 'Support' : sookshmaDignity?.strength < 40 ? 'Block' : 'Neutral'
+    };
+    
+    // Build step information
     const steps = {
         step1: {
             dasa: 'Maha Dasa',
             planet: mahaDasa,
             duration: calculateDuration(mahaDasaInfo?.start_time, mahaDasaInfo?.end_time),
+            analysis: mahaDasaAnalysis,
             themes: mahaThemes.themes || '',
             career: mahaThemes.career || '',
             finance: mahaThemes.finance || '',
             health: mahaThemes.health || '',
             relationships: mahaThemes.relationships || '',
             placement: mahaPlacement,
-            isHouseLord: mahaAspect.isFinanceLord || mahaAspect.isJobLord || mahaAspect.isRelationLord,
             startTime: mahaDasaInfo?.start_time,
             endTime: mahaDasaInfo?.end_time
         },
@@ -2260,13 +3346,13 @@ function analyzeDasaPredictions(dasaInfo, planetsData, ascendantSign, language =
             dasa: 'Antar Dasa',
             planet: antarDasa,
             duration: calculateDuration(antarDasaInfo?.start_time, antarDasaInfo?.end_time),
+            analysis: antarDasaAnalysis,
             themes: antarThemes.themes || '',
             career: antarThemes.career || '',
             finance: antarThemes.finance || '',
             health: antarThemes.health || '',
             relationships: antarThemes.relationships || '',
             placement: antarPlacement,
-            isHouseLord: antarAspect.isFinanceLord || antarAspect.isJobLord || antarAspect.isRelationLord,
             startTime: antarDasaInfo?.start_time,
             endTime: antarDasaInfo?.end_time
         },
@@ -2274,8 +3360,9 @@ function analyzeDasaPredictions(dasaInfo, planetsData, ascendantSign, language =
             dasa: 'Pratyantar Dasa',
             planet: pratyantarDasa,
             duration: calculateDuration(pratyantarDasaInfo?.start_time, pratyantarDasaInfo?.end_time),
+            analysis: pratyantarDasaAnalysis,
             themes: pratyantarThemes.themes || '',
-            isHouseLord: pratyantarAspect.isFinanceLord || pratyantarAspect.isJobLord || pratyantarAspect.isRelationLord,
+            placement: pratyantarPlacement,
             startTime: pratyantarDasaInfo?.start_time,
             endTime: pratyantarDasaInfo?.end_time
         },
@@ -2283,85 +3370,197 @@ function analyzeDasaPredictions(dasaInfo, planetsData, ascendantSign, language =
             dasa: 'Sookshma Dasa',
             planet: sookshmaDasa,
             duration: calculateDuration(sookshmaDasaInfo?.start_time, sookshmaDasaInfo?.end_time),
+            analysis: sookshmaDasaAnalysis,
             themes: sookshmaThemes.themes || '',
-            isHouseLord: sookshmaAspect.isFinanceLord || sookshmaAspect.isJobLord || sookshmaAspect.isRelationLord,
+            placement: sookshmaPlacement,
             startTime: sookshmaDasaInfo?.start_time,
             endTime: sookshmaDasaInfo?.end_time
         }
     };
     
-    // Step 5: Synthesize predictions
-    let financeScore = 50, jobScore = 50, relationshipScore = 50;
-    const financeInsights = [], jobInsights = [], relationshipInsights = [];
+    // STEP 5: Combine All Four Levels using formula: (MD Theme) + (AD Area) + (PD Event) + (SD Tone)
+    const generateCombinedPrediction = () => {
+        const mdTheme = mahaDasaAnalysis.broadQuality || mahaThemes.themes || '';
+        const adArea = antarDasaAnalysis.specificArea || antarThemes.themes || '';
+        const pdEvent = pratyantarDasaAnalysis.eventTrigger || pratyantarThemes.themes || '';
+        const sdTone = sookshmaDasaAnalysis.mood || sookshmaThemes.themes || '';
+        
+        return {
+            formula: `(${mahaDasa} MD Theme) + (${antarDasa} AD Area) + (${pratyantarDasa} PD Event) + (${sookshmaDasa} SD Tone)`,
+            mdTheme: mdTheme,
+            adArea: adArea,
+            pdEvent: pdEvent,
+            sdTone: sdTone,
+            combined: `${mdTheme} + ${adArea} + ${pdEvent} + ${sdTone}`
+        };
+    };
     
-    // Finance synthesis
-    if (mahaAspect.isFinanceLord) {
-        financeScore += 30;
-        financeInsights.push(`Maha Dasa of ${mahaDasa} (${mahaDasa === secondLord ? '2nd' : mahaDasa === tenthLord ? '10th' : '11th'} house lord) enhances financial opportunities`);
-    } else if (mahaDasa === 'Jupiter' || mahaDasa === 'Venus') {
-        financeScore += 20;
-        financeInsights.push(`Maha Dasa of ${mahaDasa} brings financial fortune through ${mahaThemes.finance || 'benefic influences'}`);
-    }
-    if (antarAspect.isFinanceLord) {
-        financeScore += 25;
-        financeInsights.push(`Antar Dasa of ${antarDasa} activates financial gains from ${antarThemes.finance || 'business activities'}`);
-    }
-    if (sookshmaAspect.isFinanceLord) {
-        financeScore += 20;
-        financeInsights.push(`Optimal timing for financial actions during Sookshma Dasa of ${sookshmaDasa}`);
-    }
+    const combinedPrediction = generateCombinedPrediction();
     
-    // Job synthesis
-    if (mahaAspect.isJobLord) {
-        jobScore += 30;
-        jobInsights.push(`Maha Dasa of ${mahaDasa} (${mahaDasa === ascendantLord ? 'Ascendant' : mahaDasa === sixthLord ? '6th' : mahaDasa === tenthLord ? '10th' : '11th'} house lord) suggests career growth`);
-    } else {
-        jobInsights.push(`Maha Dasa of ${mahaDasa} focuses on ${mahaThemes.career || 'general career themes'}`);
-    }
-    if (antarAspect.isJobLord) {
-        jobScore += 25;
-        jobInsights.push(`Antar Dasa of ${antarDasa} activates job opportunities in ${antarThemes.career || 'related fields'}`);
-    }
-    if (sookshmaAspect.isJobLord) {
-        jobScore += 20;
-        jobInsights.push(`Ideal period for job interviews, negotiations, or career moves during Sookshma Dasa of ${sookshmaDasa}`);
-    }
-    
-    // Relationship synthesis
-    if (mahaAspect.isRelationLord) {
-        relationshipScore += 30;
-        relationshipInsights.push(`Maha Dasa of ${mahaDasa} (${mahaDasa === seventhLord ? '7th house lord' : 'Venus'}) marks important relationship phases`);
-    } else if (mahaDasa === 'Jupiter') {
-        relationshipScore += 20;
-        relationshipInsights.push(`Maha Dasa of Jupiter brings harmony and blessings in relationships`);
-    }
-    if (antarAspect.isRelationLord) {
-        relationshipScore += 25;
-        relationshipInsights.push(`Antar Dasa of ${antarDasa} activates relationship developments`);
+    // Generate specific predictions based on the combination
+    const generatePredictions = () => {
+        const predictions = [];
+        
+        // Finance predictions
+        const financePredictions = [];
+        if (mahaDasaAnalysis.housesRuled.includes(2) || mahaDasaAnalysis.housesRuled.includes(11)) {
+            financePredictions.push(`Financial opportunities through ${mahaDasa} MD (rules ${mahaDasaAnalysis.housesRuled.join(', ')} house)`);
+        }
+        if (antarDasaAnalysis.housesRuled.includes(2) || antarDasaAnalysis.housesRuled.includes(11)) {
+            financePredictions.push(`Financial gains activated by ${antarDasa} AD`);
+        }
+        if (pratyantarDasaAnalysis.housesRuled.includes(2) || pratyantarDasaAnalysis.housesRuled.includes(11)) {
+            financePredictions.push(`Financial events triggered by ${pratyantarDasa} PD`);
+        }
+        
+        // Job/Career predictions
+        const jobPredictions = [];
+        if (mahaDasaAnalysis.housesRuled.includes(10) || mahaDasaAnalysis.housesRuled.includes(6)) {
+            jobPredictions.push(`Career growth through ${mahaDasa} MD (rules ${mahaDasaAnalysis.housesRuled.join(', ')} house)`);
+        }
+        if (antarDasaAnalysis.housesRuled.includes(10) || antarDasaAnalysis.housesRuled.includes(6)) {
+            jobPredictions.push(`Job opportunities in ${antarDasa} AD period`);
+        }
+        if (pratyantarDasaAnalysis.housesRuled.includes(10) || pratyantarDasaAnalysis.housesRuled.includes(6)) {
+            jobPredictions.push(`Career events like interviews, negotiations during ${pratyantarDasa} PD`);
+        }
+        
+        // Relationship predictions
+        const relationshipPredictions = [];
+        if (mahaDasaAnalysis.housesRuled.includes(7) || mahaDasa === 'Venus') {
+            relationshipPredictions.push(`Important relationship phases in ${mahaDasa} MD`);
+        }
+        if (antarDasaAnalysis.housesRuled.includes(7) || antarDasa === 'Venus') {
+            relationshipPredictions.push(`Relationship developments in ${antarDasa} AD`);
     }
     if (pratyantarDasa === 'Moon') {
-        relationshipScore += 10;
-        relationshipInsights.push(`Pratyantar Dasa of Moon requires emotional balance in relationships`);
-    }
+            relationshipPredictions.push(`Emotional balance needed in relationships during ${pratyantarDasa} PD`);
+        }
+        
+        // Calculate money/finance score using new detailed method
+        const mdBaseScore = calculateMDBaseScore(
+            mahaDasa,
+            mahaHousesRuled,
+            mahaDignity,
+            mahaPlacement?.shadbala,
+            mahaPlanetInfo
+        );
+        
+        const adMoneyWeight = calculateADMoneyWeight(
+            antarDasa,
+            antarHousesRuled,
+            antarDignity,
+            antarPlanetInfo
+        );
+        
+        const synergyScore = calculateSynergyScore(
+            mahaDasa,
+            antarDasa,
+            mahaHousesRuled,
+            antarHousesRuled
+        );
+        
+        // Final money score: 0.4 * MD_base_score + 0.4 * AD_money_weight + 0.2 * Synergy
+        // Since MD_base_score and AD_money_weight are 0-40, and Synergy is 0-20,
+        // we need to scale them to 0-100 range
+        // MD_base_score (0-40) -> scale to 0-40
+        // AD_money_weight (0-40) -> scale to 0-40
+        // Synergy (0-20) -> scale to 0-20
+        // Total max = 100, so: 0.4 * 40 + 0.4 * 40 + 0.2 * 20 = 16 + 16 + 4 = 36
+        // To get 0-100 range, we multiply by (100/36) ≈ 2.78, or simpler: scale each component
+        // Actually, let's use the formula directly and scale the result
+        const moneyScoreRaw = 0.4 * mdBaseScore + 0.4 * adMoneyWeight + 0.2 * synergyScore;
+        // Scale to 0-100: max possible is 0.4*40 + 0.4*40 + 0.2*20 = 36, so multiply by 100/36 ≈ 2.78
+        // But actually, we want the score to reflect the 0-100 range properly
+        // Let's scale each component to 0-100 first, then combine
+        const mdScaled = (mdBaseScore / 40) * 100; // 0-100
+        const adScaled = (adMoneyWeight / 40) * 100; // 0-100
+        const synergyScaled = (synergyScore / 20) * 100; // 0-100
+        const financeScore = 0.4 * mdScaled + 0.4 * adScaled + 0.2 * synergyScaled;
+        
+        // Calculate job and relationship scores (keeping old method for now)
+        let jobScore = 50, relationshipScore = 50;
+        
+        // MD strength impact
+        if (mahaDasaAnalysis.strength === 'Strong') {
+            jobScore += 15; relationshipScore += 15;
+        } else if (mahaDasaAnalysis.strength === 'Weak') {
+            jobScore -= 15; relationshipScore -= 15;
+        }
+        
+        // AD relationship with MD
+        if (antarDasaAnalysis.supportsMD) {
+            jobScore += 20; relationshipScore += 20;
+        } else if (antarDasaAnalysis.relationshipWithMD === 'enemy') {
+            jobScore -= 10; relationshipScore -= 10;
+        }
+        
+        // PD and SD impact
+        if (pratyantarDasaAnalysis.dignity?.strength >= 60) {
+            jobScore += 10; relationshipScore += 10;
+        }
+        if (sookshmaDasaAnalysis.smoothOrStressful === 'Smooth') {
+            jobScore += 5; relationshipScore += 5;
+        } else if (sookshmaDasaAnalysis.smoothOrStressful === 'Stressful') {
+            jobScore -= 5; relationshipScore -= 5;
+        }
     
-    const financePrediction = financeScore >= 75 ? 'highly favorable' : (financeScore >= 60 ? 'favorable' : (financeScore < 40 ? 'challenging' : 'moderate'));
-    const jobPrediction = jobScore >= 75 ? 'highly favorable' : (jobScore >= 60 ? 'favorable' : (jobScore < 40 ? 'challenging' : 'moderate'));
-    const relationshipPrediction = relationshipScore >= 75 ? 'highly favorable' : (relationshipScore >= 60 ? 'favorable' : (relationshipScore < 40 ? 'challenging' : 'moderate'));
+        // Label thresholds for finance
+        let financePrediction;
+        if (financeScore >= 80) {
+            financePrediction = 'highly favorable';
+        } else if (financeScore >= 60) {
+            financePrediction = 'favorable';
+        } else if (financeScore >= 40) {
+            financePrediction = 'moderate';
+        } else if (financeScore >= 20) {
+            financePrediction = 'challenging';
+        } else {
+            financePrediction = 'highly challenging';
+        }
+        
+        const jobPrediction = jobScore >= 75 ? 'highly favorable' : (jobScore >= 60 ? 'favorable' : (jobScore < 40 ? 'challenging' : 'moderate'));
+        const relationshipPrediction = relationshipScore >= 75 ? 'highly favorable' : (relationshipScore >= 60 ? 'favorable' : (relationshipScore < 40 ? 'challenging' : 'moderate'));
+        
+        return {
+            finance: {
+                score: Math.max(0, Math.min(100, financeScore)),
+                prediction: financePrediction,
+                insights: financePredictions.length > 0 ? financePredictions : [`${mahaDasa} MD + ${antarDasa} AD combination affects finances`]
+            },
+            job: {
+                score: Math.max(0, Math.min(100, jobScore)),
+                prediction: jobPrediction,
+                insights: jobPredictions.length > 0 ? jobPredictions : [`${mahaDasa} MD + ${antarDasa} AD combination affects career`]
+            },
+            relationship: {
+                score: Math.max(0, Math.min(100, relationshipScore)),
+                prediction: relationshipPrediction,
+                insights: relationshipPredictions.length > 0 ? relationshipPredictions : [`${mahaDasa} MD + ${antarDasa} AD combination affects relationships`]
+            }
+        };
+    };
+    
+    const synthesis = generatePredictions();
     
     return {
         steps: steps,
-        synthesis: {
-            finance: { score: Math.max(0, Math.min(100, financeScore)), prediction: financePrediction, insights: financeInsights },
-            job: { score: Math.max(0, Math.min(100, jobScore)), prediction: jobPrediction, insights: jobInsights },
-            relationship: { score: Math.max(0, Math.min(100, relationshipScore)), prediction: relationshipPrediction, insights: relationshipInsights }
-        },
+        synthesis: synthesis,
+        combinedPrediction: combinedPrediction,
         remedies: {
             mahaDasa: getRemedies(mahaDasa),
             antarDasa: getRemedies(antarDasa),
             pratyantarDasa: getRemedies(pratyantarDasa),
             sookshmaDasa: getRemedies(sookshmaDasa)
         },
-        houseLords: houseLords,
+        houseLords: {
+            secondLord: getHouseLord(2),
+            sixthLord: getHouseLord(6),
+            seventhLord: getHouseLord(7),
+            tenthLord: getHouseLord(10),
+            eleventhLord: getHouseLord(11),
+            ascendantLord: getHouseLord(1)
+        },
         dasaInfo: { mahaDasa, antarDasa, pratyantarDasa, sookshmaDasa }
     };
 }
@@ -3262,6 +4461,1394 @@ function computeYogas(planetsData, ascendantSign) {
     }
 
     return results;
+}
+
+// =====================================================
+// KUNDLI SCORING SYSTEM (1-10 scale)
+// Calculates Health, Finance, and Career scores based on 6 factors each
+// =====================================================
+
+/**
+ * Calculate House Strength raw score (starting from 0)
+ * Add/subtract points based on planets in the house (occupants only)
+ * Note: Shadbala is NOT counted here (only in lord scoring)
+ */
+function calculateHouseStrengthRaw(houseNum, planetsData, ascendantSign) {
+    if (!planetsData || !ascendantSign) return 0;
+    
+    let rawScore = 0; // Start at 0
+    
+    // Find planets in this house
+    const planetsInHouse = [];
+    for (const [planet, planetInfo] of Object.entries(planetsData)) {
+        if (planet === 'Ascendant' || planet === 'ayanamsa') continue;
+        if (!planetInfo || !planetInfo.current_sign) continue;
+        const planetHouse = getRelativeHouseNumber(ascendantSign, planetInfo.current_sign);
+        if (planetHouse === houseNum) {
+            planetsInHouse.push({ planet, planetInfo });
+        }
+    }
+    
+    for (const { planet, planetInfo } of planetsInHouse) {
+        const dignity = calculatePlanetaryDignity(planet, planetInfo);
+        const isRetro = planetInfo.isRetro === 'true' || planetInfo.isRetro === true;
+        const isCombust = isPlanetCombust(planet, planetInfo, planetsData);
+        
+        // Dignity points (occupant scoring)
+        if (dignity) {
+            if (dignity.isExalted) rawScore += 4;
+            else if (dignity.isOwnSign || dignity.isMoolatrikona) rawScore += 3;
+            else if (dignity.type === 'friendly') rawScore += 1;
+            else if (dignity.type === 'neutral') rawScore += 0;
+            else if (dignity.type === 'enemy') rawScore -= 1;
+            else if (dignity.isDebilitated) rawScore -= 3; // Debilitated: -3
+        }
+        
+        // Retrograde (occupant scoring)
+        if (isRetro) {
+            if (BENEFIC_PLANETS.includes(planet)) {
+                rawScore += 0; // Benefic retrograde: 0
+            } else if (MALIFIC_PLANETS.includes(planet)) {
+                rawScore -= 2; // Malefic retrograde: -2
+            }
+        }
+        
+        // Aspects (occupant scoring - check for strong benefic/malefic aspects)
+        if (planetsData.Jupiter) {
+            const jupiterDignity = calculatePlanetaryDignity('Jupiter', planetsData.Jupiter);
+            if (jupiterDignity && jupiterDignity.strength >= 60) {
+                rawScore += 1; // Strong benefic aspect: +1
+            }
+        }
+        // Check for strong malefic aspects (simplified - check if any strong malefic aspects this house)
+        for (const maleficPlanet of MALIFIC_PLANETS) {
+            if (planetsData[maleficPlanet] && maleficPlanet !== planet) {
+                const maleficDignity = calculatePlanetaryDignity(maleficPlanet, planetsData[maleficPlanet]);
+                if (maleficDignity && maleficDignity.strength >= 60) {
+                    rawScore -= 1; // Strong malefic aspect: -1
+                    break; // Count once per planet
+                }
+            }
+        }
+        
+        // Negative points
+        if (isCombust) rawScore -= 2; // Combust
+    }
+    
+    // Check for malefic affliction (multiple malefics penalty: -2 max)
+    const maleficCount = planetsInHouse.filter(p => MALIFIC_PLANETS.includes(p.planet)).length;
+    if (maleficCount > 1) rawScore -= 2; // Multiple malefics: -2
+    
+    return rawScore;
+}
+
+/**
+ * Calculate House Score with Lord Bonus
+ * Returns: house score (occupants) + lord bonus (+1 if lord ≥ +3, -1 if lord ≤ -3)
+ */
+function calculateHouseScoreWithLordBonus(houseNum, planetsData, ascendantSign, shadbalaApiData) {
+    // Calculate house score (occupants only)
+    let houseScore = calculateHouseStrengthRaw(houseNum, planetsData, ascendantSign);
+    
+    // Calculate lord score
+    const lordScore = calculateLordStrengthRaw(houseNum, ascendantSign, planetsData, shadbalaApiData);
+    
+    // Add house lord bonus
+    if (lordScore >= 3) {
+        houseScore += 1; // Strong lord: +1 bonus
+    } else if (lordScore <= -3) {
+        houseScore -= 1; // Weak lord: -1 penalty
+    }
+    
+    // Cap per-house score (min -5, max +5)
+    houseScore = Math.max(-5, Math.min(5, houseScore));
+    
+    return houseScore;
+}
+
+/**
+ * Calculate Lord Strength raw score (starting from 0)
+ * Add/subtract points based on lord's dignity, aspects, etc.
+ */
+function calculateLordStrengthRaw(houseNum, ascendantSign, planetsData, shadbalaApiData) {
+    if (!planetsData || !ascendantSign) return 0;
+    
+    const houseSign = ((ascendantSign + houseNum - 2) % 12) + 1;
+    const lord = ZODIAC_LORDS[houseSign];
+    if (!lord || !planetsData[lord]) return 0;
+    
+    let rawScore = 0; // Start at 0
+    
+    const lordInfo = planetsData[lord];
+    const dignity = calculatePlanetaryDignity(lord, lordInfo);
+    const shadbala = calculateShadbala(lord, lordInfo, planetsData, ascendantSign, shadbalaApiData);
+    const isCombust = isPlanetCombust(lord, lordInfo, planetsData);
+    const isRetro = lordInfo.isRetro === 'true' || lordInfo.isRetro === true;
+    
+    // Dignity points (lord scoring)
+    if (dignity) {
+        if (dignity.isExalted) rawScore += 4; // Exalted: +4
+        else if (dignity.isOwnSign || dignity.isMoolatrikona) rawScore += 3; // Own/Moolatrikona: +3
+        else if (dignity.type === 'friendly') rawScore += 1; // Friendly: +1
+        else if (dignity.type === 'neutral') rawScore += 0; // Neutral: 0
+        else if (dignity.type === 'enemy') rawScore -= 1; // Enemy: -1
+        else if (dignity.isDebilitated) rawScore -= 3; // Debilitated: -3
+    }
+    
+    // Shadbala impact (lord scoring only)
+    if (shadbala) {
+        const shadbalaValue = shadbala.fromApi ? shadbala.shadbala : shadbala.totalShadbala;
+        if (shadbalaValue >= 480) rawScore += 1; // Strong: +1
+        else if (shadbalaValue < 350) rawScore -= 1; // Weak: -1
+    }
+    
+    // Retrograde (lord scoring)
+    if (isRetro) {
+        if (BENEFIC_PLANETS.includes(lord)) {
+            rawScore += 0; // Benefic retrograde: 0
+        } else if (MALIFIC_PLANETS.includes(lord)) {
+            rawScore -= 2; // Malefic retrograde: -2
+        }
+    }
+    
+    // Aspects received (lord scoring)
+    const lordHouse = getRelativeHouseNumber(ascendantSign, lordInfo.current_sign);
+    // Strong benefic aspect: +1
+    if (planetsData.Jupiter) {
+        const jupiterDignity = calculatePlanetaryDignity('Jupiter', planetsData.Jupiter);
+        if (jupiterDignity && jupiterDignity.strength >= 60) {
+            rawScore += 1; // Strong benefic aspect: +1
+        }
+    }
+    // Strong malefic aspect: -1 (simplified check)
+    for (const planet of MALIFIC_PLANETS) {
+        if (planetsData[planet] && planet !== lord) {
+            const planetDignity = calculatePlanetaryDignity(planet, planetsData[planet]);
+            if (planetDignity && planetDignity.strength >= 60) {
+                rawScore -= 1; // Strong malefic aspect: -1
+                break; // Count once
+            }
+        }
+    }
+    
+    // Negative points (lord scoring)
+    if (isCombust) rawScore -= 2; // Combust
+    
+    return rawScore;
+}
+
+/**
+ * Calculate Yogas raw score (starting from 0)
+ * Add/subtract points based on good/bad yogas
+ */
+function calculateYogasScoreRaw(yogas, category, planetsData = null, ascendantSign = null) {
+    if (!yogas) return 0;
+    
+    let rawScore = 0; // Start at 0
+    const goodYogas = yogas.good || [];
+    const badYogas = yogas.bad || [];
+    
+    // Helper to check if a planet is debilitated or strongly afflicted
+    const isPlanetAfflicted = (planet, planetsData, ascendantSign) => {
+        if (!planetsData || !planetsData[planet]) return false;
+        const dignity = calculatePlanetaryDignity(planet, planetsData[planet]);
+        return dignity && dignity.isDebilitated;
+    };
+    
+    // Helper to check if Parivartana involves good houses/benefics
+    const evaluateParivartanaQuality = (yoga, planetsData, ascendantSign) => {
+        // Check if yoga.extra contains house information
+        // For now, we'll use a simplified check based on involved planets
+        if (!planetsData || !ascendantSign) return 2; // Default to mixed (+2)
+        
+        // Check if exchange involves any debilitated planet (not just Saturn)
+        // This applies to all planets - if any planet in the exchange is debilitated, reduce quality
+        const allPlanets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
+        let hasAfflictedPlanet = false;
+        
+        for (const planet of allPlanets) {
+            if (isPlanetAfflicted(planet, planetsData, ascendantSign)) {
+                hasAfflictedPlanet = true;
+                break; // Found at least one afflicted planet
+            }
+        }
+        
+        if (hasAfflictedPlanet) {
+            return 1; // Involving any afflicted/debilitated planet: +1
+        }
+        
+        // If we can't determine, default based on category
+        if (category === 'finance' || category === 'career') {
+            return 2; // Mixed: +2
+        }
+        
+        return 3; // Good: +3 to +4 (default to +3)
+    };
+    
+    // Good yogas add points (scaled by quality for Parivartana)
+    if (category === 'health') {
+        const healthYogas = goodYogas.filter(y => ['gaja', 'hamsa', 'neecha'].includes(y.key));
+        rawScore += healthYogas.length * 3; // +3 per yoga
+    } else if (category === 'finance') {
+        const dhanaYogas = goodYogas.filter(y => y.key === 'dhana');
+        const lakshmiYogas = goodYogas.filter(y => y.key === 'lakshmi');
+        const parivartanaYogas = goodYogas.filter(y => y.key === 'parivartana');
+        
+        rawScore += dhanaYogas.length * 4; // Dhana: +4
+        rawScore += lakshmiYogas.length * 4; // Lakshmi: +4
+        
+        // Parivartana: scale by quality
+        for (const yoga of parivartanaYogas) {
+            const quality = evaluateParivartanaQuality(yoga, planetsData, ascendantSign);
+            rawScore += quality; // +1 to +3 based on quality
+        }
+    } else if (category === 'career') {
+        const rajYogas = goodYogas.filter(y => y.key === 'raj');
+        const amalaYogas = goodYogas.filter(y => y.key === 'amala');
+        const panchYogas = goodYogas.filter(y => y.key === 'panch');
+        const parivartanaYogas = goodYogas.filter(y => y.key === 'parivartana');
+        
+        rawScore += rajYogas.length * 4; // Raj: +4
+        rawScore += amalaYogas.length * 3; // Amala: +3
+        rawScore += panchYogas.length * 3; // Panch: +3
+        
+        // Parivartana: scale by quality (if involves career houses)
+        for (const yoga of parivartanaYogas) {
+            const quality = evaluateParivartanaQuality(yoga, planetsData, ascendantSign);
+            rawScore += quality; // +1 to +3 based on quality
+        }
+    }
+    
+    // Bad yogas subtract points (-2 to -4)
+    if (category === 'health') {
+        const badHealthYogas = badYogas.filter(y => ['grahan', 'shrapit'].includes(y.key));
+        rawScore -= badHealthYogas.length * 3; // -3 per bad yoga
+    } else if (category === 'finance') {
+        const badFinanceYogas = badYogas.filter(y => ['daridra'].includes(y.key));
+        rawScore -= badFinanceYogas.length * 4; // -4 for major bad yoga
+    } else if (category === 'career') {
+        const badCareerYogas = badYogas.filter(y => ['bhanga'].includes(y.key));
+        rawScore -= badCareerYogas.length * 3; // -3 per bad yoga
+    }
+    
+    return rawScore;
+}
+
+/**
+ * Calculate Dasha Strength raw score (starting from 0)
+ * Add/subtract points based on dasha lords
+ */
+function calculateDashaStrengthRaw(currentDasha, category, planetsData, ascendantSign) {
+    if (!currentDasha) return 0;
+    
+    let rawScore = 0; // Start at 0
+    const mahaDasa = currentDasha.mahaDasa;
+    const antarDasa = currentDasha.antarDasa;
+    
+    // Check dignity of dasha lords
+    let mahaDasaDignity = null;
+    let antarDasaDignity = null;
+    if (planetsData && mahaDasa && planetsData[mahaDasa]) {
+        mahaDasaDignity = calculatePlanetaryDignity(mahaDasa, planetsData[mahaDasa]);
+    }
+    if (planetsData && antarDasa && planetsData[antarDasa]) {
+        antarDasaDignity = calculatePlanetaryDignity(antarDasa, planetsData[antarDasa]);
+    }
+    
+    if (category === 'health') {
+        // For health, Moon and Jupiter are good
+        if (mahaDasa === 'Moon' || mahaDasa === 'Jupiter') {
+            rawScore += 3; // Strong dasha
+            if (mahaDasaDignity && (mahaDasaDignity.isExalted || mahaDasaDignity.isOwnSign)) {
+                rawScore += 1; // Extra point for strong dignity
+            }
+        } else if (mahaDasa === 'Saturn' || mahaDasa === 'Mars') {
+            rawScore -= 3; // Bad dasha
+        } else {
+            rawScore += 1; // Neutral
+        }
+        
+        if (antarDasa === 'Moon' || antarDasa === 'Jupiter') {
+            rawScore += 2; // Good AD
+        } else if (antarDasa === 'Saturn' || antarDasa === 'Mars') {
+            rawScore -= 2; // Bad AD
+        }
+    } else if (category === 'finance') {
+        // For finance, Jupiter and Venus are good
+        if (mahaDasa === 'Jupiter' || mahaDasa === 'Venus') {
+            rawScore += 3; // Strong dasha
+            if (mahaDasaDignity && (mahaDasaDignity.isExalted || mahaDasaDignity.isOwnSign)) {
+                rawScore += 1;
+            }
+        } else if (mahaDasa === 'Saturn' || mahaDasa === 'Rahu') {
+            rawScore -= 4; // Bad dasha for finance
+        } else {
+            rawScore += 1; // Neutral
+        }
+        
+        if (antarDasa === 'Jupiter' || antarDasa === 'Venus') {
+            rawScore += 2; // Good AD
+        } else if (antarDasa === 'Saturn' || antarDasa === 'Rahu') {
+            rawScore -= 2; // Bad AD
+        }
+    } else if (category === 'career') {
+        // For career, Sun, Mercury, Jupiter are good
+        if (mahaDasa === 'Sun' || mahaDasa === 'Mercury' || mahaDasa === 'Jupiter') {
+            rawScore += 3; // Strong dasha
+            if (mahaDasaDignity && (mahaDasaDignity.isExalted || mahaDasaDignity.isOwnSign)) {
+                rawScore += 1;
+            }
+        } else if (mahaDasa === 'Saturn') {
+            rawScore -= 5; // Very bad dasha for career
+        } else {
+            rawScore += 1; // Neutral
+        }
+        
+        if (antarDasa === 'Sun' || antarDasa === 'Mercury' || antarDasa === 'Jupiter') {
+            rawScore += 2; // Good AD
+        } else if (antarDasa === 'Saturn') {
+            rawScore -= 3; // Bad AD
+        }
+    }
+    
+    return rawScore;
+}
+
+/**
+ * Convert raw score to 1-10 rating using simplified method
+ * Adjusted for 3 factors (without Dasha)
+ */
+function convertRawScoreToRating(rawScore) {
+    // With 3 factors instead of 4, maximum scores are lower, so adjust thresholds
+    if (rawScore >= 12) return 9.5; // 9-10 rating
+    if (rawScore >= 8) return 7.5;  // 7-8 rating
+    if (rawScore >= 4) return 6.5;  // 6-7 rating
+    if (rawScore >= 0) return 4.5;  // 4-5 rating
+    if (rawScore >= -4) return 3;   // 2-4 rating
+    return 1.5; // 1-2 rating (below -4)
+}
+
+/**
+ * Get detailed house breakdown for a list of houses
+ */
+function getHouseBreakdown(houses, planetsData, ascendantSign) {
+    const breakdown = [];
+    for (const houseNum of houses) {
+        const houseScore = calculateHouseStrengthRaw(houseNum, planetsData, ascendantSign);
+        const planetsInHouse = [];
+        
+        for (const [planet, planetInfo] of Object.entries(planetsData)) {
+            if (planet === 'Ascendant' || planet === 'ayanamsa') continue;
+            if (!planetInfo || !planetInfo.current_sign) continue;
+            const planetHouse = getRelativeHouseNumber(ascendantSign, planetInfo.current_sign);
+            if (planetHouse === houseNum) {
+                const dignity = calculatePlanetaryDignity(planet, planetInfo);
+                const isCombust = isPlanetCombust(planet, planetInfo, planetsData);
+                const isRetro = planetInfo.isRetro === 'true' || planetInfo.isRetro === true;
+                
+                let points = 0;
+                let details = [];
+                
+                if (dignity) {
+                    if (dignity.isExalted) { points += 4; details.push('Exalted (+4)'); }
+                    else if (dignity.isOwnSign) { points += 3; details.push('Own Sign (+3)'); }
+                    else if (dignity.isDebilitated) { points -= 3; details.push('Debilitated (-3)'); }
+                    else if (dignity.type === 'friendly') { points += 1; details.push('Friendly (+1)'); }
+                    else if (dignity.type === 'enemy') { points -= 1; details.push('Enemy Sign (-1)'); }
+                }
+                
+                if (BENEFIC_PLANETS.includes(planet)) { points += 1; details.push('Benefic (+1)'); }
+                if (isCombust) { points -= 2; details.push('Combust (-2)'); }
+                if (isRetro && MALIFIC_PLANETS.includes(planet)) { points -= 2; details.push('Retrograde Malefic (-2)'); }
+                
+                planetsInHouse.push({
+                    planet,
+                    planetInfo,
+                    points,
+                    details: details.join(', ')
+                });
+            }
+        }
+        
+        // Calculate multiple malefics penalty (same logic as calculateHouseStrengthRaw)
+        const maleficCount = planetsInHouse.filter(p => MALIFIC_PLANETS.includes(p.planet)).length;
+        const multipleMaleficsPenalty = maleficCount > 1 ? -2 : 0;
+        
+        // Verify the calculation matches
+        const calculatedSum = planetsInHouse.reduce((sum, p) => sum + p.points, 0) + multipleMaleficsPenalty;
+        
+        breakdown.push({
+            house: houseNum,
+            score: houseScore,
+            planets: planetsInHouse,
+            multipleMaleficsPenalty: multipleMaleficsPenalty,
+            calculatedSum: calculatedSum
+        });
+    }
+    return breakdown;
+}
+
+/**
+ * Get detailed lord breakdown for a list of house numbers
+ */
+function getLordBreakdown(houses, ascendantSign, planetsData, shadbalaApiData) {
+    const breakdown = [];
+    for (const houseNum of houses) {
+        const lordScore = calculateLordStrengthRaw(houseNum, ascendantSign, planetsData, shadbalaApiData);
+        const houseSign = ((ascendantSign + houseNum - 2) % 12) + 1;
+        const lord = ZODIAC_LORDS[houseSign];
+        
+        if (lord && planetsData[lord]) {
+            const lordInfo = planetsData[lord];
+            const dignity = calculatePlanetaryDignity(lord, lordInfo);
+            const shadbala = calculateShadbala(lord, lordInfo, planetsData, ascendantSign, shadbalaApiData);
+            const isCombust = isPlanetCombust(lord, lordInfo, planetsData);
+            const isRetro = lordInfo.isRetro === 'true' || lordInfo.isRetro === true;
+            
+            let details = [];
+            if (dignity) {
+                if (dignity.isExalted) details.push('Exalted (+4)');
+                else if (dignity.isOwnSign) details.push('Own Sign (+3)');
+                else if (dignity.isDebilitated) details.push('Debilitated (-3)');
+                else if (dignity.type === 'friendly') details.push('Friendly Sign (+1)');
+                else if (dignity.type === 'enemy') details.push('Enemy Sign (-1)');
+            }
+            
+            if (shadbala) {
+                const shadbalaValue = shadbala.fromApi ? shadbala.shadbala : shadbala.totalShadbala;
+                if (shadbalaValue >= 480) details.push('Strong Shadbala (+1)');
+                else if (shadbalaValue < 350) details.push('Weak Shadbala (-1)');
+            }
+            
+            if (planetsData.Jupiter) {
+                const jupiterDignity = calculatePlanetaryDignity('Jupiter', planetsData.Jupiter);
+                if (jupiterDignity && jupiterDignity.strength >= 60) {
+                    details.push('Benefic Aspect (+1)');
+                }
+            }
+            
+            if (isCombust) details.push('Combust (-2)');
+            if (isRetro && MALIFIC_PLANETS.includes(lord)) details.push('Retrograde Malefic (-2)');
+            
+            breakdown.push({
+                house: houseNum,
+                lord,
+                score: lordScore,
+                details: details.join(', ')
+            });
+        }
+    }
+    return breakdown;
+}
+
+/**
+ * Get detailed yoga breakdown for a category
+ */
+function getYogaBreakdown(yogas, category) {
+    if (!yogas) return { good: [], bad: [] };
+    
+    const goodYogas = yogas.good || [];
+    const badYogas = yogas.bad || [];
+    
+    let relevantGood = [];
+    let relevantBad = [];
+    
+    if (category === 'health') {
+        relevantGood = goodYogas.filter(y => ['gaja', 'hamsa', 'neecha'].includes(y.key));
+        relevantBad = badYogas.filter(y => ['grahan', 'shrapit'].includes(y.key));
+    } else if (category === 'finance') {
+        relevantGood = goodYogas.filter(y => ['dhana', 'lakshmi', 'parivartana'].includes(y.key));
+        relevantBad = badYogas.filter(y => ['daridra'].includes(y.key));
+    } else if (category === 'career') {
+        relevantGood = goodYogas.filter(y => ['raj', 'amala', 'panch'].includes(y.key));
+        relevantBad = badYogas.filter(y => ['bhanga'].includes(y.key));
+    }
+    
+    return {
+        good: relevantGood.map(y => ({
+            name: y.name,
+            points: category === 'finance' || category === 'career' ? 4 : 3
+        })),
+        bad: relevantBad.map(y => ({
+            name: y.name,
+            points: category === 'finance' ? -4 : -3
+        }))
+    };
+}
+
+/**
+ * Calculate Health Score (1-10) using new formula with house lord bonuses
+ */
+function calculateHealthScore(planetsData, ascendantSign, yogas, currentDasha, shadbalaApiData) {
+    if (!planetsData || !ascendantSign) return { score: 5, factors: {} };
+    
+    // Helper: Get house lord
+    const getHouseLord = (houseNum) => {
+        const houseSign = ((ascendantSign + houseNum - 2) % 12) + 1;
+        return ZODIAC_LORDS[houseSign];
+    };
+    
+    // Helper: Get planetary relationship
+    const getPlanetaryRelationship = (planet1, planet2) => {
+        if (planet1 === planet2) return 'same';
+        if (planet1 === 'Rahu' || planet1 === 'Ketu' || planet2 === 'Rahu' || planet2 === 'Ketu') {
+            return 'neutral';
+        }
+        const relationship = PLANETARY_RELATIONSHIPS[planet1];
+        if (!relationship) return 'neutral';
+        if (relationship.friends.includes(planet2)) return 'friend';
+        if (relationship.enemies.includes(planet2)) return 'enemy';
+        return 'neutral';
+    };
+    
+    // Helper: Check conjunction (planets in same house)
+    const checkConjunction = (planet1, planet2, planetsData, ascendantSign) => {
+        if (!planetsData[planet1] || !planetsData[planet2]) return false;
+        const house1 = getRelativeHouseNumber(ascendantSign, planetsData[planet1].current_sign);
+        const house2 = getRelativeHouseNumber(ascendantSign, planetsData[planet2].current_sign);
+        return house1 === house2;
+    };
+    
+    // Helper: Calculate conjunction score for a lord (-3 to +3)
+    const calculateConjunctionScore = (lord, planetsData, ascendantSign, shadbalaApiData) => {
+        if (!planetsData[lord]) return { score: 0, details: [] };
+        
+        let conjunctionScore = 0;
+        const conjunctionDetails = [];
+        const lordInfo = planetsData[lord];
+        
+        for (const [planet, planetInfo] of Object.entries(planetsData)) {
+            if (planet === lord || planet === 'Ascendant' || planet === 'ayanamsa') continue;
+            if (!planetInfo || !planetInfo.current_sign) continue;
+            
+            if (checkConjunction(planet, lord, planetsData, ascendantSign)) {
+                const isBenefic = BENEFIC_PLANETS.includes(planet);
+                const isMalefic = MALIFIC_PLANETS.includes(planet);
+                const planetDignity = calculatePlanetaryDignity(planet, planetInfo);
+                const planetShadbala = calculateShadbala(planet, planetInfo, planetsData, ascendantSign, shadbalaApiData);
+                const relationship = getPlanetaryRelationship(lord, planet);
+                
+                let points = 0;
+                let detail = '';
+                
+                if (isBenefic) {
+                    points = 1;
+                    detail = `${planet} (benefic)`;
+                    if (relationship === 'friend') {
+                        points = 2;
+                        detail += ', friend';
+                    }
+                    if (planetDignity && (planetDignity.isExalted || planetDignity.isOwnSign)) {
+                        points = 3;
+                        detail += ', strong (exalted/own)';
+                    } else if (planetShadbala) {
+                        const shadbalaValue = planetShadbala.fromApi ? planetShadbala.shadbala : planetShadbala.totalShadbala;
+                        if (shadbalaValue >= 480) {
+                            points = 3;
+                            detail += ', strong (shadbala)';
+                        }
+                    }
+                    conjunctionScore += points;
+                    conjunctionDetails.push(`+${points} (${detail})`);
+                } else if (isMalefic) {
+                    points = -1;
+                    detail = `${planet} (malefic)`;
+                    if (relationship === 'enemy') {
+                        points = -2;
+                        detail += ', enemy';
+                    }
+                    if (planetDignity && (planetDignity.isExalted || planetDignity.isOwnSign)) {
+                        points = -3;
+                        detail += ', strong (exalted/own)';
+                    } else if (planetShadbala) {
+                        const shadbalaValue = planetShadbala.fromApi ? planetShadbala.shadbala : planetShadbala.totalShadbala;
+                        if (shadbalaValue >= 480) {
+                            points = -3;
+                            detail += ', strong (shadbala)';
+                        }
+                    }
+                    conjunctionScore += points;
+                    conjunctionDetails.push(`${points} (${detail})`);
+                }
+            }
+        }
+        
+        conjunctionScore = Math.max(-3, Math.min(3, conjunctionScore));
+        return { score: conjunctionScore, details: conjunctionDetails };
+    };
+    
+    let rawScore = 0; // Start at 0
+    
+    // Houses to check: 1st, 6th, 8th, 12th
+    const healthHouses = [1, 6, 8, 12];
+    
+    // Factor 1: House Strength with Lord Bonuses
+    const houseScores = healthHouses.map(h => calculateHouseScoreWithLordBonus(h, planetsData, ascendantSign, shadbalaApiData));
+    const houseStrengthRaw = houseScores.reduce((a, b) => a + b, 0);
+    rawScore += houseStrengthRaw;
+    
+    // Factor 2: Lord Strength (Lagna lord, 6th lord, 8th lord) with conjunction scoring
+    const lagnaLord = getHouseLord(1);
+    const sixthLord = getHouseLord(6);
+    const eighthLord = getHouseLord(8);
+    
+    // Calculate base lord strength
+    const lagnaLordBase = calculateLordStrengthRaw(1, ascendantSign, planetsData, shadbalaApiData);
+    const sixthLordBase = calculateLordStrengthRaw(6, ascendantSign, planetsData, shadbalaApiData);
+    const eighthLordBase = calculateLordStrengthRaw(8, ascendantSign, planetsData, shadbalaApiData);
+    
+    // Add conjunction scores
+    const lagnaLordConjunction = calculateConjunctionScore(lagnaLord, planetsData, ascendantSign, shadbalaApiData);
+    const sixthLordConjunction = calculateConjunctionScore(sixthLord, planetsData, ascendantSign, shadbalaApiData);
+    const eighthLordConjunction = calculateConjunctionScore(eighthLord, planetsData, ascendantSign, shadbalaApiData);
+    
+    const lagnaLordTotal = lagnaLordBase + lagnaLordConjunction.score;
+    const sixthLordTotal = sixthLordBase + sixthLordConjunction.score;
+    const eighthLordTotal = eighthLordBase + eighthLordConjunction.score;
+    
+    const lordStrengthRaw = lagnaLordTotal + sixthLordTotal + eighthLordTotal;
+    rawScore += lordStrengthRaw;
+    
+    // Factor 3: Yogas
+    const yogasRaw = calculateYogasScoreRaw(yogas, 'health', planetsData, ascendantSign);
+    rawScore += yogasRaw;
+    
+    // Convert raw score to 1-10 rating
+    const finalScore = convertRawScoreToRating(rawScore);
+    
+    // Get detailed breakdowns
+    const houseBreakdown = getHouseBreakdown(healthHouses, planetsData, ascendantSign);
+    const lordBreakdown = getLordBreakdown([1, 6, 8], ascendantSign, planetsData, shadbalaApiData);
+    const yogaBreakdown = getYogaBreakdown(yogas, 'health');
+    
+    const factors = {
+        houseStrength: houseStrengthRaw,
+        lordStrength: lordStrengthRaw,
+        lordDetails: {
+            lagnaLord: {
+                base: lagnaLordBase,
+                conjunction: lagnaLordConjunction.score,
+                total: lagnaLordTotal,
+                conjunctionDetails: lagnaLordConjunction.details
+            },
+            sixthLord: {
+                base: sixthLordBase,
+                conjunction: sixthLordConjunction.score,
+                total: sixthLordTotal,
+                conjunctionDetails: sixthLordConjunction.details
+            },
+            eighthLord: {
+                base: eighthLordBase,
+                conjunction: eighthLordConjunction.score,
+                total: eighthLordTotal,
+                conjunctionDetails: eighthLordConjunction.details
+            }
+        },
+        yogas: yogasRaw,
+        rawTotal: rawScore,
+        houseBreakdown,
+        lordBreakdown,
+        yogaBreakdown
+    };
+    
+    return { score: Math.max(1, Math.min(10, Math.round(finalScore * 10) / 10)), factors };
+}
+
+/**
+ * Calculate Finance Score (1-10) with conjunction scoring for all lords
+ */
+function calculateFinanceScore(planetsData, ascendantSign, yogas, currentDasha, shadbalaApiData) {
+    if (!planetsData || !ascendantSign) return { score: 5, factors: {} };
+    
+    // Helper: Get house lord
+    const getHouseLord = (houseNum) => {
+        const houseSign = ((ascendantSign + houseNum - 2) % 12) + 1;
+        return ZODIAC_LORDS[houseSign];
+    };
+    
+    // Helper: Get planetary relationship
+    const getPlanetaryRelationship = (planet1, planet2) => {
+        if (planet1 === planet2) return 'same';
+        if (planet1 === 'Rahu' || planet1 === 'Ketu' || planet2 === 'Rahu' || planet2 === 'Ketu') {
+            return 'neutral';
+        }
+        const relationship = PLANETARY_RELATIONSHIPS[planet1];
+        if (!relationship) return 'neutral';
+        if (relationship.friends.includes(planet2)) return 'friend';
+        if (relationship.enemies.includes(planet2)) return 'enemy';
+        return 'neutral';
+    };
+    
+    // Helper: Check conjunction (planets in same house)
+    const checkConjunction = (planet1, planet2, planetsData, ascendantSign) => {
+        if (!planetsData[planet1] || !planetsData[planet2]) return false;
+        const house1 = getRelativeHouseNumber(ascendantSign, planetsData[planet1].current_sign);
+        const house2 = getRelativeHouseNumber(ascendantSign, planetsData[planet2].current_sign);
+        return house1 === house2;
+    };
+    
+    // Helper: Calculate conjunction score for a lord (-3 to +3)
+    const calculateConjunctionScore = (lord, planetsData, ascendantSign, shadbalaApiData) => {
+        if (!planetsData[lord]) return { score: 0, details: [] };
+        
+        let conjunctionScore = 0;
+        const conjunctionDetails = [];
+        const lordInfo = planetsData[lord];
+        const lordHouse = getRelativeHouseNumber(ascendantSign, lordInfo.current_sign);
+        
+        // Check all planets for conjunctions with this lord
+        for (const [planet, planetInfo] of Object.entries(planetsData)) {
+            if (planet === lord || planet === 'Ascendant' || planet === 'ayanamsa') continue;
+            if (!planetInfo || !planetInfo.current_sign) continue;
+            
+            if (checkConjunction(planet, lord, planetsData, ascendantSign)) {
+                const isBenefic = BENEFIC_PLANETS.includes(planet);
+                const isMalefic = MALIFIC_PLANETS.includes(planet);
+                const planetDignity = calculatePlanetaryDignity(planet, planetInfo);
+                const planetShadbala = calculateShadbala(planet, planetInfo, planetsData, ascendantSign, shadbalaApiData);
+                const relationship = getPlanetaryRelationship(lord, planet);
+                
+                let points = 0;
+                let detail = '';
+                
+                if (isBenefic) {
+                    // Benefic Conjunctions (+1 to +3)
+                    points = 1;
+                    detail = `${planet} (benefic)`;
+                    
+                    if (relationship === 'friend') {
+                        points = 2;
+                        detail += ', friend';
+                    }
+                    
+                    if (planetDignity && (planetDignity.isExalted || planetDignity.isOwnSign)) {
+                        points = 3;
+                        detail += ', strong (exalted/own)';
+                    } else if (planetShadbala) {
+                        const shadbalaValue = planetShadbala.fromApi ? planetShadbala.shadbala : planetShadbala.totalShadbala;
+                        if (shadbalaValue >= 480) {
+                            points = 3;
+                            detail += ', strong (shadbala)';
+                        }
+                    }
+                    
+                    conjunctionScore += points;
+                    conjunctionDetails.push(`+${points} (${detail})`);
+                } else if (isMalefic) {
+                    // Malefic Conjunctions (-1 to -3)
+                    points = -1;
+                    detail = `${planet} (malefic)`;
+                    
+                    if (relationship === 'enemy') {
+                        points = -2;
+                        detail += ', enemy';
+                    }
+                    
+                    if (planetDignity && (planetDignity.isExalted || planetDignity.isOwnSign)) {
+                        points = -3;
+                        detail += ', strong (exalted/own)';
+                    } else if (planetShadbala) {
+                        const shadbalaValue = planetShadbala.fromApi ? planetShadbala.shadbala : planetShadbala.totalShadbala;
+                        if (shadbalaValue >= 480) {
+                            points = -3;
+                            detail += ', strong (shadbala)';
+                        }
+                    }
+                    
+                    conjunctionScore += points;
+                    conjunctionDetails.push(`${points} (${detail})`);
+                }
+            }
+        }
+        
+        conjunctionScore = Math.max(-3, Math.min(3, conjunctionScore));
+        return { score: conjunctionScore, details: conjunctionDetails };
+    };
+    
+    let rawScore = 0; // Start at 0
+    
+    // Houses to check: 2nd, 11th, 5th, 9th, 10th
+    const financeHouses = [2, 11, 5, 9, 10];
+    
+    // Factor 1: House Strength with Lord Bonuses
+    const houseScores = financeHouses.map(h => calculateHouseScoreWithLordBonus(h, planetsData, ascendantSign, shadbalaApiData));
+    const houseStrengthRaw = houseScores.reduce((a, b) => a + b, 0);
+    rawScore += houseStrengthRaw;
+    
+    // Factor 2: Lord Strength (2nd lord, 11th lord, 9th lord) with conjunction scoring
+    const secondLord = getHouseLord(2);
+    const eleventhLord = getHouseLord(11);
+    const ninthLord = getHouseLord(9);
+    
+    // Calculate base lord strength
+    const secondLordBase = calculateLordStrengthRaw(2, ascendantSign, planetsData, shadbalaApiData);
+    const eleventhLordBase = calculateLordStrengthRaw(11, ascendantSign, planetsData, shadbalaApiData);
+    const ninthLordBase = calculateLordStrengthRaw(9, ascendantSign, planetsData, shadbalaApiData);
+    
+    // Add conjunction scores
+    const secondLordConjunction = calculateConjunctionScore(secondLord, planetsData, ascendantSign, shadbalaApiData);
+    const eleventhLordConjunction = calculateConjunctionScore(eleventhLord, planetsData, ascendantSign, shadbalaApiData);
+    const ninthLordConjunction = calculateConjunctionScore(ninthLord, planetsData, ascendantSign, shadbalaApiData);
+    
+    const secondLordTotal = secondLordBase + secondLordConjunction.score;
+    const eleventhLordTotal = eleventhLordBase + eleventhLordConjunction.score;
+    const ninthLordTotal = ninthLordBase + ninthLordConjunction.score;
+    
+    const lordStrengthRaw = secondLordTotal + eleventhLordTotal + ninthLordTotal;
+    rawScore += lordStrengthRaw;
+    
+    // Factor 3: Yogas
+    const yogasRaw = calculateYogasScoreRaw(yogas, 'finance', planetsData, ascendantSign);
+    rawScore += yogasRaw;
+    
+    // Convert raw score to 1-10 rating
+    const finalScore = convertRawScoreToRating(rawScore);
+    
+    // Get detailed breakdowns
+    const houseBreakdown = getHouseBreakdown(financeHouses, planetsData, ascendantSign);
+    const lordBreakdown = getLordBreakdown([2, 11, 9], ascendantSign, planetsData, shadbalaApiData);
+    const yogaBreakdown = getYogaBreakdown(yogas, 'finance');
+    
+    const factors = {
+        houseStrength: houseStrengthRaw,
+        lordStrength: lordStrengthRaw,
+        lordDetails: {
+            secondLord: {
+                base: secondLordBase,
+                conjunction: secondLordConjunction.score,
+                total: secondLordTotal,
+                conjunctionDetails: secondLordConjunction.details
+            },
+            eleventhLord: {
+                base: eleventhLordBase,
+                conjunction: eleventhLordConjunction.score,
+                total: eleventhLordTotal,
+                conjunctionDetails: eleventhLordConjunction.details
+            },
+            ninthLord: {
+                base: ninthLordBase,
+                conjunction: ninthLordConjunction.score,
+                total: ninthLordTotal,
+                conjunctionDetails: ninthLordConjunction.details
+            }
+        },
+        yogas: yogasRaw,
+        rawTotal: rawScore,
+        houseBreakdown,
+        lordBreakdown,
+        yogaBreakdown
+    };
+    
+    return { score: Math.max(1, Math.min(10, Math.round(finalScore * 10) / 10)), factors };
+}
+
+/**
+ * Calculate Career/Job Score using updated detailed scoring system
+ * Returns: Work Strength, Earnings Strength, and Overall Career Rating
+ */
+function calculateCareerScore(planetsData, ascendantSign, yogas, currentDasha, shadbalaApiData) {
+    if (!planetsData || !ascendantSign) return { 
+        score: 5, 
+        workStrength: 5, 
+        earningsStrength: 5, 
+        factors: {} 
+    };
+    
+    // Helper: Get house lord
+    const getHouseLord = (houseNum) => {
+        const houseSign = ((ascendantSign + houseNum - 2) % 12) + 1;
+        return ZODIAC_LORDS[houseSign];
+    };
+    
+    // Helper: Check if planet aspects a house (simplified - check if planet is in aspecting house)
+    const checkAspects = (planet, targetHouse, planetsData, ascendantSign) => {
+        if (!planetsData[planet]) return { benefic: 0, malefic: 0 };
+        const planetHouse = getRelativeHouseNumber(ascendantSign, planetsData[planet].current_sign);
+        const isBenefic = BENEFIC_PLANETS.includes(planet);
+        const isMalefic = MALIFIC_PLANETS.includes(planet);
+        
+        // Simplified aspect check: 7th house aspect (opposition)
+        let beneficCount = 0, maleficCount = 0;
+        if (planetHouse === ((targetHouse + 5) % 12) + 1) {
+            if (isBenefic) beneficCount = 1;
+            if (isMalefic) maleficCount = 1;
+        }
+        return { benefic: beneficCount, malefic: maleficCount };
+    };
+    
+    // Helper: Check conjunction (planets in same house)
+    const checkConjunction = (planet1, planet2, planetsData, ascendantSign) => {
+        if (!planetsData[planet1] || !planetsData[planet2]) return false;
+        const house1 = getRelativeHouseNumber(ascendantSign, planetsData[planet1].current_sign);
+        const house2 = getRelativeHouseNumber(ascendantSign, planetsData[planet2].current_sign);
+        return house1 === house2;
+    };
+    
+    // Helper: Get planetary relationship
+    const getPlanetaryRelationship = (planet1, planet2) => {
+        if (planet1 === planet2) return 'same';
+        if (planet1 === 'Rahu' || planet1 === 'Ketu' || planet2 === 'Rahu' || planet2 === 'Ketu') {
+            return 'neutral'; // Rahu/Ketu relationships not defined in standard system
+        }
+        const relationship = PLANETARY_RELATIONSHIPS[planet1];
+        if (!relationship) return 'neutral';
+        if (relationship.friends.includes(planet2)) return 'friend';
+        if (relationship.enemies.includes(planet2)) return 'enemy';
+        return 'neutral';
+    };
+    
+    // Helper: Calculate conjunction score for a lord (-3 to +3)
+    const calculateConjunctionScore = (lord, planetsData, ascendantSign, shadbalaApiData) => {
+        if (!planetsData[lord]) return { score: 0, details: [] };
+        
+        let conjunctionScore = 0;
+        const conjunctionDetails = [];
+        const lordInfo = planetsData[lord];
+        const lordHouse = getRelativeHouseNumber(ascendantSign, lordInfo.current_sign);
+        
+        // Check all planets for conjunctions with this lord
+        for (const [planet, planetInfo] of Object.entries(planetsData)) {
+            if (planet === lord || planet === 'Ascendant' || planet === 'ayanamsa') continue;
+            if (!planetInfo || !planetInfo.current_sign) continue;
+            
+            if (checkConjunction(planet, lord, planetsData, ascendantSign)) {
+                const isBenefic = BENEFIC_PLANETS.includes(planet);
+                const isMalefic = MALIFIC_PLANETS.includes(planet);
+                const planetDignity = calculatePlanetaryDignity(planet, planetInfo);
+                const planetShadbala = calculateShadbala(planet, planetInfo, planetsData, ascendantSign, shadbalaApiData);
+                const relationship = getPlanetaryRelationship(lord, planet);
+                
+                let points = 0;
+                let detail = '';
+                
+                if (isBenefic) {
+                    // Benefic Conjunctions (+1 to +3)
+                    points = 1; // Base: +1 for benefic conjunction
+                    detail = `${planet} (benefic)`;
+                    
+                    // With own sign lord / friend: +2
+                    if (relationship === 'friend') {
+                        points = 2;
+                        detail += ', friend';
+                    }
+                    
+                    // With strong benefic (exalted / strong shadbala): +3
+                    if (planetDignity && (planetDignity.isExalted || planetDignity.isOwnSign)) {
+                        points = 3;
+                        detail += ', strong (exalted/own)';
+                    } else if (planetShadbala) {
+                        const shadbalaValue = planetShadbala.fromApi ? planetShadbala.shadbala : planetShadbala.totalShadbala;
+                        if (shadbalaValue >= 480) {
+                            points = 3;
+                            detail += ', strong (shadbala)';
+                        }
+                    }
+                    
+                    conjunctionScore += points;
+                    conjunctionDetails.push(`+${points} (${detail})`);
+                } else if (isMalefic) {
+                    // Malefic Conjunctions (-1 to -3)
+                    points = -1; // Base: -1 for mild malefic conjunction
+                    detail = `${planet} (malefic)`;
+                    
+                    // With enemy planet: -2
+                    if (relationship === 'enemy') {
+                        points = -2;
+                        detail += ', enemy';
+                    }
+                    
+                    // With strong malefic (exalted / strong shadbala): -3
+                    if (planetDignity && (planetDignity.isExalted || planetDignity.isOwnSign)) {
+                        points = -3;
+                        detail += ', strong (exalted/own)';
+                    } else if (planetShadbala) {
+                        const shadbalaValue = planetShadbala.fromApi ? planetShadbala.shadbala : planetShadbala.totalShadbala;
+                        if (shadbalaValue >= 480) {
+                            points = -3;
+                            detail += ', strong (shadbala)';
+                        }
+                    }
+                    
+                    conjunctionScore += points;
+                    conjunctionDetails.push(`${points} (${detail})`);
+                }
+            }
+        }
+        
+        // Cap at -3 to +3 per lord
+        conjunctionScore = Math.max(-3, Math.min(3, conjunctionScore));
+        
+        return { score: conjunctionScore, details: conjunctionDetails };
+    };
+    
+    // Declare conjunction variables at function level
+    let tenthLordConjunction, lagnaLordConjunction, secondLordConjunction, 
+        eleventhLordConjunction, sixthLordConjunction, thirdLordConjunction;
+    
+    // ========== 1. 10th House & 10th-lord Block (Primary work indicator) — max 8 points ==========
+    // Calculate 10th lord score (Dignity + Shadbala + Retrograde + Aspects + Conjunctions)
+    const tenthLord = getHouseLord(10);
+    const tenthLordBase = calculateLordStrengthRaw(10, ascendantSign, planetsData, shadbalaApiData);
+    tenthLordConjunction = calculateConjunctionScore(tenthLord, planetsData, ascendantSign, shadbalaApiData);
+    const tenthLordScore = tenthLordBase + tenthLordConjunction.score;
+    
+    // Calculate 10th house score (occupants + lord bonus)
+    const tenthHouseScore = calculateHouseScoreWithLordBonus(10, planetsData, ascendantSign, shadbalaApiData);
+    
+    // 10th Block: Direct mapping from lord + house to 0-8
+    // Strong positive (lord + house >= 4): 6-8
+    // Moderate positive (lord + house 1-3): 3-5
+    // Neutral (lord + house 0): 2
+    // Weak negative (lord + house -1 to -3): 0-1
+    // Strong negative (lord + house <= -4): 0
+    const tenthTotal = tenthLordScore + tenthHouseScore;
+    let tenthBlockScore = 0;
+    if (tenthTotal >= 4) tenthBlockScore = 6 + Math.min(2, (tenthTotal - 4) * 0.5); // 6-8 for very strong
+    else if (tenthTotal >= 1) tenthBlockScore = 3 + (tenthTotal - 1) * 0.67; // 3-5 for positive
+    else if (tenthTotal >= 0) tenthBlockScore = 2; // 2 for neutral
+    else if (tenthTotal >= -3) tenthBlockScore = 1 - (tenthTotal + 3) * 0.33; // 1-0 for weak negative
+    else tenthBlockScore = 0; // 0 for strong negative
+    tenthBlockScore = Math.max(0, Math.min(8, Math.round(tenthBlockScore * 10) / 10));
+    
+    // ========== 2. Lagna/Ascendant & Lagna-lord Block — max 4 points ==========
+    // Calculate Lagna lord score (Dignity + Shadbala + Retrograde + Aspects + Conjunctions)
+    const lagnaLord = getHouseLord(1);
+    const lagnaLordBase = calculateLordStrengthRaw(1, ascendantSign, planetsData, shadbalaApiData);
+    lagnaLordConjunction = calculateConjunctionScore(lagnaLord, planetsData, ascendantSign, shadbalaApiData);
+    const lagnaLordScore = lagnaLordBase + lagnaLordConjunction.score;
+    
+    // Calculate 1st house score (occupants + lord bonus)
+    const lagnaHouseScore = calculateHouseScoreWithLordBonus(1, planetsData, ascendantSign, shadbalaApiData);
+    
+    // Lagna Block: Direct mapping from lord + house to 0-4
+    // Strong positive (lord + house >= 3): 3-4
+    // Moderate positive (lord + house 1-2): 2-3
+    // Neutral/weak positive (lord + house 0): 1-2
+    // Weak negative (lord + house -1 to -3): 0-1
+    // Strong negative (lord + house <= -4): 0
+    const lagnaTotal = lagnaLordScore + lagnaHouseScore;
+    let lagnaBlockScore = 0;
+    if (lagnaTotal >= 3) lagnaBlockScore = 3 + Math.min(1, (lagnaTotal - 3) * 0.5); // 3-4 for very strong
+    else if (lagnaTotal >= 1) lagnaBlockScore = 2 + (lagnaTotal - 1) * 0.5; // 2-3 for positive
+    else if (lagnaTotal >= 0) lagnaBlockScore = 1 + lagnaTotal; // 1-2 for neutral/weak positive
+    else if (lagnaTotal >= -3) lagnaBlockScore = 1 + (lagnaTotal + 3) * 0.33; // 0-1 for weak negative
+    else lagnaBlockScore = 0; // 0 for strong negative
+    lagnaBlockScore = Math.max(0, Math.min(4, Math.round(lagnaBlockScore * 10) / 10));
+    
+    // Check if Lagna is weak (for multiplier)
+    const lagnaNetScore = lagnaLordScore + lagnaHouseScore;
+    const lagnaWeak = lagnaNetScore <= -1;
+    
+    // ========== 3. 6th House & 3rd House Blocks (work environment, service, effort) — max 3 points each ==========
+    // 6th Block: 6th lord + 6th house, scale to 0-3
+    const sixthLord = getHouseLord(6);
+    const sixthLordBase = calculateLordStrengthRaw(6, ascendantSign, planetsData, shadbalaApiData);
+    sixthLordConjunction = calculateConjunctionScore(sixthLord, planetsData, ascendantSign, shadbalaApiData);
+    const sixthLordScore = sixthLordBase + sixthLordConjunction.score;
+    const sixthHouseScore = calculateHouseScoreWithLordBonus(6, planetsData, ascendantSign, shadbalaApiData);
+    // 6th Block: Direct mapping from lord + house to 0-3
+    const sixthTotal = sixthLordScore + sixthHouseScore;
+    let sixthBlockScore = 0;
+    if (sixthTotal >= 3) sixthBlockScore = 3; // Max for very strong
+    else if (sixthTotal >= 1) sixthBlockScore = 2 + (sixthTotal - 1); // 2-3 for positive
+    else if (sixthTotal >= 0) sixthBlockScore = 1; // 1 for neutral
+    else if (sixthTotal >= -3) sixthBlockScore = 1 + (sixthTotal + 3) * 0.33; // 0-1 for weak negative
+    else sixthBlockScore = 0; // 0 for strong negative
+    sixthBlockScore = Math.max(0, Math.min(3, Math.round(sixthBlockScore * 10) / 10));
+    
+    // 3rd Block: 3rd lord + 3rd house, scale to 0-3
+    const thirdLord = getHouseLord(3);
+    const thirdLordBase = calculateLordStrengthRaw(3, ascendantSign, planetsData, shadbalaApiData);
+    thirdLordConjunction = calculateConjunctionScore(thirdLord, planetsData, ascendantSign, shadbalaApiData);
+    const thirdLordScore = thirdLordBase + thirdLordConjunction.score;
+    const thirdHouseScore = calculateHouseScoreWithLordBonus(3, planetsData, ascendantSign, shadbalaApiData);
+    // 3rd Block: Direct mapping from lord + house to 0-3
+    // If lord is -5 and house is 0, total is -5, block should be 0-1/3
+    const thirdTotal = thirdLordScore + thirdHouseScore;
+    let thirdBlockScore = 0;
+    if (thirdTotal >= 3) thirdBlockScore = 3; // Max for very strong
+    else if (thirdTotal >= 1) thirdBlockScore = 2 + (thirdTotal - 1); // 2-3 for positive
+    else if (thirdTotal >= 0) thirdBlockScore = 1; // 1 for neutral
+    else if (thirdTotal >= -3) thirdBlockScore = 1 + (thirdTotal + 3) * 0.33; // 0-1 for weak negative
+    else thirdBlockScore = 0; // 0 for strong negative (like -5)
+    thirdBlockScore = Math.max(0, Math.min(3, Math.round(thirdBlockScore * 10) / 10));
+    
+    // ========== 4. 2nd House & 11th House Blocks (income from work / gains) — max 3 points each ==========
+    // 2nd Block: 2nd lord + 2nd house, scale to 0-3
+    const secondLord = getHouseLord(2);
+    const secondLordBase = calculateLordStrengthRaw(2, ascendantSign, planetsData, shadbalaApiData);
+    secondLordConjunction = calculateConjunctionScore(secondLord, planetsData, ascendantSign, shadbalaApiData);
+    const secondLordScore = secondLordBase + secondLordConjunction.score;
+    const secondHouseScore = calculateHouseScoreWithLordBonus(2, planetsData, ascendantSign, shadbalaApiData);
+    // 2nd Block: Direct mapping from lord + house to 0-3
+    // If lord is -5 and house is +1, total is -4, block should be 0-1/3
+    const secondTotal = secondLordScore + secondHouseScore;
+    let secondBlockScore = 0;
+    if (secondTotal >= 3) secondBlockScore = 3; // Max for very strong
+    else if (secondTotal >= 1) secondBlockScore = 2 + (secondTotal - 1); // 2-3 for positive
+    else if (secondTotal >= 0) secondBlockScore = 1; // 1 for neutral
+    else if (secondTotal >= -3) secondBlockScore = 1 + (secondTotal + 3) * 0.33; // 0-1 for weak negative
+    else secondBlockScore = 0; // 0 for strong negative (like -4 or -5)
+    secondBlockScore = Math.max(0, Math.min(3, Math.round(secondBlockScore * 10) / 10));
+    
+    // 11th Block: 11th lord + 11th house, scale to 0-3
+    const eleventhLord = getHouseLord(11);
+    const eleventhLordBase = calculateLordStrengthRaw(11, ascendantSign, planetsData, shadbalaApiData);
+    eleventhLordConjunction = calculateConjunctionScore(eleventhLord, planetsData, ascendantSign, shadbalaApiData);
+    const eleventhLordScore = eleventhLordBase + eleventhLordConjunction.score;
+    const eleventhHouseScore = calculateHouseScoreWithLordBonus(11, planetsData, ascendantSign, shadbalaApiData);
+    // 11th Block: Direct mapping from lord + house to 0-3
+    // Strong Venus (+3 lord + +3 house = +6) should give 3/3
+    const eleventhTotal = eleventhLordScore + eleventhHouseScore;
+    let eleventhBlockScore = 0;
+    if (eleventhTotal >= 3) eleventhBlockScore = 3; // Max for very strong (like Venus +3 lord + +3 house)
+    else if (eleventhTotal >= 1) eleventhBlockScore = 2 + (eleventhTotal - 1); // 2-3 for positive
+    else if (eleventhTotal >= 0) eleventhBlockScore = 1; // 1 for neutral
+    else if (eleventhTotal >= -3) eleventhBlockScore = 1 + (eleventhTotal + 3) * 0.33; // 0-1 for weak negative
+    else eleventhBlockScore = 0; // 0 for strong negative
+    eleventhBlockScore = Math.max(0, Math.min(3, Math.round(eleventhBlockScore * 10) / 10));
+    
+    // ========== 5. Functional Karakas (Sun, Saturn, Mercury) — max 3 points ==========
+    let karakaScore = 0;
+    
+    // Sun (authority)
+    if (planetsData.Sun) {
+        const sunDignity = calculatePlanetaryDignity('Sun', planetsData.Sun);
+        const sunShadbala = calculateShadbala('Sun', planetsData.Sun, planetsData, ascendantSign, shadbalaApiData);
+        const isSunCombust = isPlanetCombust('Sun', planetsData.Sun, planetsData);
+        
+        if (sunDignity && (sunDignity.isOwnSign || sunDignity.isExalted)) {
+            karakaScore += 1;
+        } else if (isSunCombust || (sunDignity && sunDignity.isDebilitated)) {
+            karakaScore -= 1;
+        } else if (sunShadbala) {
+            const shadbalaValue = sunShadbala.fromApi ? sunShadbala.shadbala : sunShadbala.totalShadbala;
+            if (shadbalaValue >= 480) karakaScore += 1;
+        }
+    }
+    
+    // Saturn (work, discipline)
+    if (planetsData.Saturn) {
+        const saturnDignity = calculatePlanetaryDignity('Saturn', planetsData.Saturn);
+        const saturnShadbala = calculateShadbala('Saturn', planetsData.Saturn, planetsData, ascendantSign, shadbalaApiData);
+        
+        if (saturnDignity && (saturnDignity.isOwnSign || saturnDignity.isExalted)) {
+            karakaScore += 1;
+        } else if (saturnDignity && saturnDignity.isDebilitated) {
+            karakaScore -= 1;
+        } else if (saturnShadbala) {
+            const shadbalaValue = saturnShadbala.fromApi ? saturnShadbala.shadbala : saturnShadbala.totalShadbala;
+            if (shadbalaValue >= 480) karakaScore += 1;
+        }
+    }
+    
+    // Mercury (skills/communication)
+    if (planetsData.Mercury) {
+        const mercuryDignity = calculatePlanetaryDignity('Mercury', planetsData.Mercury);
+        const mercuryShadbala = calculateShadbala('Mercury', planetsData.Mercury, planetsData, ascendantSign, shadbalaApiData);
+        const isMercuryCombust = isPlanetCombust('Mercury', planetsData.Mercury, planetsData);
+        
+        if (mercuryDignity && (mercuryDignity.isOwnSign || mercuryDignity.isExalted)) {
+            karakaScore += 1;
+        } else if (isMercuryCombust || (mercuryDignity && mercuryDignity.isDebilitated)) {
+            karakaScore -= 1;
+        } else if (mercuryShadbala) {
+            const shadbalaValue = mercuryShadbala.fromApi ? mercuryShadbala.shadbala : mercuryShadbala.totalShadbala;
+            if (shadbalaValue >= 480) karakaScore += 1;
+        }
+    }
+    
+    karakaScore = Math.max(-3, Math.min(3, karakaScore));
+    
+    // ========== 6. Yogas & Raj-yogas — max +3 ==========
+    let yogaScore = 0;
+    if (yogas && yogas.good) {
+        const rajYoga = yogas.good.find(y => y.key === 'raj');
+        const dhanaYoga = yogas.good.find(y => y.key === 'dhana');
+        const amalaYoga = yogas.good.find(y => y.key === 'amala');
+        const panchYoga = yogas.good.find(y => y.key === 'panch');
+        const akhandaSamrajya = yogas.good.find(y => y.key === 'akhandaSamrajya');
+        const parivartanaYoga = yogas.good.find(y => y.key === 'parivartana');
+        
+        // Raj yoga or major career yogas
+        if (rajYoga || akhandaSamrajya) yogaScore += 3;
+        else if (dhanaYoga || amalaYoga || panchYoga) yogaScore += 2;
+        
+        // Parivartana: scale by quality (if involves career houses)
+        if (parivartanaYoga) {
+            // Check if involves any debilitated planet (applies to all planets, not just Saturn)
+            const allPlanets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
+            let hasAfflictedPlanet = false;
+            
+            for (const planet of allPlanets) {
+                if (planetsData[planet]) {
+                    const dignity = calculatePlanetaryDignity(planet, planetsData[planet]);
+                    if (dignity && dignity.isDebilitated) {
+                        hasAfflictedPlanet = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (hasAfflictedPlanet) {
+                yogaScore += 1; // Involving any afflicted/debilitated planet: +1
+            } else {
+                yogaScore += 2; // Mixed: +2 (default for career)
+            }
+        }
+        
+        // Other career-related yogas
+        const kahalaYoga = yogas.good.find(y => y.key === 'kahala');
+        const lakshmiYoga = yogas.good.find(y => y.key === 'lakshmi');
+        if (kahalaYoga || lakshmiYoga) yogaScore += 1;
+    }
+    
+    yogaScore = Math.min(3, yogaScore);
+    
+    // ========== 7. Aspects, Conjunctions & Notable afflictions — ± up to 3 ==========
+    let aspectsScore = 0;
+    
+    // Benefic support to 10th/2nd/11th (cap at +2)
+    let beneficSupportCount = 0;
+    for (const planet of BENEFIC_PLANETS) {
+        const planetInfo = planetsData[planet];
+        if (!planetInfo) continue;
+        const planetHouse = getRelativeHouseNumber(ascendantSign, planetInfo.current_sign);
+        if (planetHouse === 10 || planetHouse === 2 || planetHouse === 11) {
+            beneficSupportCount += 1;
+        }
+    }
+    aspectsScore += Math.min(2, beneficSupportCount);
+    
+    // Malefic hemming/combust/conjunction (up to -3)
+    let maleficAfflictionCount = 0;
+    for (const planet of MALIFIC_PLANETS) {
+        const planetInfo = planetsData[planet];
+        if (!planetInfo) continue;
+        const planetHouse = getRelativeHouseNumber(ascendantSign, planetInfo.current_sign);
+        if (planetHouse === 10 || planetHouse === 2 || planetHouse === 11) {
+            maleficAfflictionCount += 1;
+        }
+        if (isPlanetCombust(planet, planetInfo, planetsData)) {
+            maleficAfflictionCount += 1;
+        }
+    }
+    aspectsScore -= Math.min(3, maleficAfflictionCount);
+    
+    aspectsScore = Math.max(-3, Math.min(3, aspectsScore));
+    
+    // ========== Calculate Work Strength and Earnings Strength ==========
+    // Work Strength: Weighted average of blocks (10th, 6th, Lagna, 3rd)
+    // Formula: 0.4 * (10th/8) * 10 + 0.3 * (6th/3) * 10 + 0.2 * (Lagna/4) * 10 + 0.1 * (3rd/3) * 10
+    const workFromBlocks = 
+        (0.4 * (tenthBlockScore / 8) * 10) +
+        (0.3 * (sixthBlockScore / 3) * 10) +
+        (0.2 * (lagnaBlockScore / 4) * 10) +
+        (0.1 * (thirdBlockScore / 3) * 10);
+    
+    // Add yoga and aspects as bonuses (scale to 0-2 points max)
+    const yogaBonus = Math.min(2, (yogaScore / 3) * 2); // Max +2 from yogas
+    const aspectsBonus = Math.min(1, (aspectsScore / 3) * 1); // Max +1 from aspects
+    const workStrength = Math.max(0, Math.min(10, workFromBlocks + yogaBonus + aspectsBonus));
+    
+    // Earnings Strength: Weighted average of blocks (2nd, 11th)
+    // Formula: 0.4 * (2nd/3) * 10 + 0.6 * (11th/3) * 10
+    const earningsFromBlocks = 
+        (0.4 * (secondBlockScore / 3) * 10) +
+        (0.6 * (eleventhBlockScore / 3) * 10);
+    
+    // Add karaka as bonus if positive (scale to 0-1 point max)
+    const karakaBonus = Math.max(0, Math.min(1, (karakaScore / 3) * 1)); // Max +1 from karakas
+    const earningsStrength = Math.max(0, Math.min(10, earningsFromBlocks + karakaBonus));
+    
+    // ========== Overall Career Rating ==========
+    let overallCareer = (0.6 * workStrength) + (0.4 * earningsStrength);
+    
+    // ========== Apply Lagna Reduction if Lagna is weak ==========
+    if (lagnaWeak && lagnaNetScore <= -1) {
+        const reductionPercent = lagnaNetScore <= -2 ? 0.25 : 0.15; // 25% or 15% reduction
+        overallCareer = overallCareer * (1 - reductionPercent);
+    }
+    
+    // Normalize to 0-10
+    overallCareer = Math.max(0, Math.min(10, overallCareer));
+    
+    // Get detailed breakdowns for display
+    const houseBreakdown = getHouseBreakdown([10, 6, 3, 2, 11, 1], planetsData, ascendantSign);
+    const lordBreakdown = getLordBreakdown([10, 6, 3, 2, 11, 1], ascendantSign, planetsData, shadbalaApiData);
+    const yogaBreakdown = getYogaBreakdown(yogas, 'career');
+    
+    // Initialize conjunction results if not already calculated
+    if (!tenthLordConjunction) tenthLordConjunction = { score: 0, details: [] };
+    if (!lagnaLordConjunction) lagnaLordConjunction = { score: 0, details: [] };
+    if (!secondLordConjunction) secondLordConjunction = { score: 0, details: [] };
+    if (!eleventhLordConjunction) eleventhLordConjunction = { score: 0, details: [] };
+    if (!sixthLordConjunction) sixthLordConjunction = { score: 0, details: [] };
+    if (!thirdLordConjunction) thirdLordConjunction = { score: 0, details: [] };
+    
+    // Calculate total raw score (sum of raw lord + house scores before normalization)
+    // This represents the actual planetary strength, not the normalized blocks
+    const totalRawScore = (tenthLordScore + tenthHouseScore) + 
+                         (lagnaLordScore + lagnaHouseScore) + 
+                         (sixthLordScore + sixthHouseScore) + 
+                         (thirdLordScore + thirdHouseScore) + 
+                         (secondLordScore + secondHouseScore) + 
+                         (eleventhLordScore + eleventhHouseScore) + 
+                         karakaScore + yogaScore + aspectsScore;
+    
+    const factors = {
+        tenthBlock: tenthBlockScore,
+        lagnaBlock: lagnaBlockScore,
+        sixthBlock: sixthBlockScore,
+        thirdBlock: thirdBlockScore,
+        secondBlock: secondBlockScore,
+        eleventhBlock: eleventhBlockScore,
+        karakaScore: karakaScore,
+        yogaScore: yogaScore,
+        aspectsScore: aspectsScore,
+        workFromBlocks: workFromBlocks,
+        earningsFromBlocks: earningsFromBlocks,
+        rawTotal: totalRawScore, // Total raw score for display
+        lagnaWeak: lagnaWeak,
+        lagnaReduction: lagnaWeak && lagnaNetScore <= -1 ? (lagnaNetScore <= -2 ? 0.25 : 0.15) : 0,
+        conjunctions: {
+            tenthLord: tenthLordConjunction,
+            lagnaLord: lagnaLordConjunction,
+            secondLord: secondLordConjunction,
+            eleventhLord: eleventhLordConjunction,
+            sixthLord: sixthLordConjunction,
+            thirdLord: thirdLordConjunction
+        },
+        houseBreakdown,
+        lordBreakdown,
+        yogaBreakdown
+    };
+    
+    return { 
+        score: Math.round(overallCareer * 10) / 10,
+        workStrength: Math.round(workStrength * 10) / 10,
+        earningsStrength: Math.round(earningsStrength * 10) / 10,
+        factors 
+    };
+}
+
+/**
+ * Calculate Overall Kundli Score (1-10) - Average of Health, Finance, and Career
+ */
+function calculateOverallKundliScore(planetsData, ascendantSign, yogas, currentDasha, shadbalaApiData) {
+    const healthScore = calculateHealthScore(planetsData, ascendantSign, yogas, currentDasha, shadbalaApiData);
+    const financeScore = calculateFinanceScore(planetsData, ascendantSign, yogas, currentDasha, shadbalaApiData);
+    const careerScore = calculateCareerScore(planetsData, ascendantSign, yogas, currentDasha, shadbalaApiData);
+    
+    const overallScore = (healthScore.score + financeScore.score + careerScore.score) / 3;
+    const finalOverallScore = Math.max(1, Math.min(10, Math.round(overallScore * 10) / 10));
+    
+    return {
+        overall: finalOverallScore,
+        health: healthScore,
+        finance: financeScore,
+        career: careerScore
+    };
 }
 
 function setupChatbotUI() {
@@ -7023,6 +9610,11 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
     const yogaResults = ascendantSign ? computeYogas(planetsData, ascendantSign) : { good: [], bad: [] };
     const yogaSection = generateYogaSection(yogaResults, language);
     
+    // Calculate Kundli Scores
+    const kundliScores = ascendantSign && planetsData 
+        ? calculateOverallKundliScore(planetsData, ascendantSign, yogaResults, currentDasha, shadbalaApiData)
+        : null;
+    
     // Don't generate these sections here - they will be loaded on demand when user clicks
     // All prediction sections will be loaded lazily when user clicks on them
     const strengthAssessmentSection = ''; // Will be loaded when user clicks "Planetary Strength"
@@ -7041,71 +9633,105 @@ function generateArticleHTML(fullName, birthDate, formattedDate, timeOfBirth, pl
         hasYogas: !!yogaSection
     });
     
-    // ------------ RENDER THE HTML ------------
+    // ------------ RENDER THE HTML WITH TABS ------------
    return `
     ${sidebarNav}
     <button onclick="goBackToForm()" class="back-button">${texts.backButton}</button>
     <div class="article-main-content">
     <div class="article-content">
-        <div class="article-header article-section" id="article-header">
+        <div class="article-header-fixed article-section" id="article-header">
             <h1>${texts.title}</h1>
             <div class="article-meta">${texts.subtitle}</div>
         </div>
         <div class="article-body">
-            <div class="article-intro article-section" id="article-intro">
-                <p>${texts.intro}</p>
-            </div>
-            <div class="birth-details-box article-section" id="birth-details">
-                <h2>${texts.birthInfo}</h2>
-                <p><strong>${texts.name}:</strong> ${fullName}</p>
-                <p><strong>${texts.date}:</strong> ${formattedDate}</p>
-                ${timeOfBirth ? `<p><strong>${texts.time}:</strong> ${timeOfBirth}</p>` : ''}
-                <p><strong>${texts.location}:</strong> ${placeOfBirth}</p>
-            </div>
-            <div class="fundamental-note" style="margin: 24px 0 36px 0;">
-                <p style="background: #ffe7b1; color: #634800; font-size: 17px; padding: 18px 22px; border-left: 6px solid #d9a900;">
-                    <strong>${texts.note}:</strong> ${texts.noteText}
-                </p>
-            </div>
-            ${currentDasha ? generateDashaSummary(currentDasha, apiResult, language, texts) : `
-            <div class="fundamental-note" style="margin: 24px 0 36px 0; background: #f0f0f0; border-left: 4px solid #999;">
-                <p style="padding: 15px; color: #666; font-size: 14px;">
-                    <strong>${language === 'hi' ? 'नोट' : 'Note'}:</strong> ${language === 'hi' 
-                        ? 'महादशा जानकारी उपलब्ध नहीं है। कृपया ब्राउज़र कंसोल में त्रुटियों की जांच करें।' 
-                        : 'Mahadasha information not available. Please check browser console for errors.'}
-                </p>
-            </div>
-            `}
-            <div class="planets-section article-section" id="planetary-positions">
-                <h2>${texts.planetaryPositions}</h2>
-                <div class="planets-table-wrapper">
-                    <table class="planets-table">
-                        <thead>
-                            <tr>
-                                <th>${texts.planet}</th>
-                                <th>${texts.sign}</th>
-                                <th>${texts.degree}</th>
-                                <th>${texts.status}</th>
-                            </tr>
-                        </thead>
-                        <tbody>${planetsHTML}</tbody>
-                    </table>
+            <!-- Tab Content Container -->
+            <div class="kundli-tab-container">
+                <!-- Birth Details Tab (Default Active) -->
+                <div class="kundli-tab-content active" data-tab="birth-details" id="tab-birth-details">
+                    <div class="article-intro article-section" id="article-intro">
+                        <p>${texts.intro}</p>
+                    </div>
+                    <div class="birth-details-box article-section">
+                        <h2>${texts.birthInfo}</h2>
+                        <p><strong>${texts.name}:</strong> ${fullName}</p>
+                        <p><strong>${texts.date}:</strong> ${formattedDate}</p>
+                        ${timeOfBirth ? `<p><strong>${texts.time}:</strong> ${timeOfBirth}</p>` : ''}
+                        <p><strong>${texts.location}:</strong> ${placeOfBirth}</p>
+                    </div>
+                    <div class="fundamental-note" style="margin: 24px 0 36px 0;">
+                        <p style="background: #ffe7b1; color: #634800; font-size: 17px; padding: 18px 22px; border-left: 6px solid #d9a900;">
+                            <strong>${texts.note}:</strong> ${texts.noteText}
+                        </p>
+                    </div>
+                    ${currentDasha ? generateDashaSummary(currentDasha, apiResult, language, texts) : `
+                    <div class="fundamental-note" style="margin: 24px 0 36px 0; background: #f0f0f0; border-left: 4px solid #999;">
+                        <p style="padding: 15px; color: #666; font-size: 14px;">
+                            <strong>${language === 'hi' ? 'नोट' : 'Note'}:</strong> ${language === 'hi' 
+                                ? 'महादशा जानकारी उपलब्ध नहीं है। कृपया ब्राउज़र कंसोल में त्रुटियों की जांच करें।' 
+                                : 'Mahadasha information not available. Please check browser console for errors.'}
+                        </p>
+                    </div>
+                    `}
                 </div>
-            </div>
-            <div class="planets-section article-section" id="house-lords">
-                <h2>${texts.houseLordInHouses}</h2>
-                ${houseLordsHTML}
-            </div>
-            <div class="planets-section article-section" id="house-effects">
-                <h2>${texts.planetaryHouseEffects}</h2>
-                ${planetsHouseEffectsHTML}
-            </div>
-            <!-- Dynamic content area - content loads here when user clicks sidebar links -->
-            <div id="dynamic-content-area" class="dynamic-content-area"></div>
-            <div class="article-intro" style="margin-top: 60px;">
-                <p style="font-size: 18px; color: #666; font-style: italic;">
-                    ${texts.footerNote}
-                </p>
+                
+                <!-- Planetary Positions Tab -->
+                <div class="kundli-tab-content" data-tab="planetary-positions" id="tab-planetary-positions">
+                    <div class="planets-section article-section">
+                        <h2>${texts.planetaryPositions}</h2>
+                        <div class="planets-table-wrapper">
+                            <table class="planets-table">
+                                <thead>
+                                    <tr>
+                                        <th>${texts.planet}</th>
+                                        <th>${texts.sign}</th>
+                                        <th>${texts.degree}</th>
+                                        <th>${texts.status}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${planetsHTML}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- House Lords Tab -->
+                <div class="kundli-tab-content" data-tab="house-lords" id="tab-house-lords">
+                    <div class="planets-section article-section">
+                        <h2>${texts.houseLordInHouses}</h2>
+                        ${houseLordsHTML}
+                    </div>
+                </div>
+                
+                <!-- House Effects Tab -->
+                <div class="kundli-tab-content" data-tab="house-effects" id="tab-house-effects">
+                    <div class="planets-section article-section">
+                        <h2>${texts.planetaryHouseEffects}</h2>
+                        ${planetsHouseEffectsHTML}
+                    </div>
+                </div>
+                
+                <!-- Dynamic tabs (loaded on demand) -->
+                <div class="kundli-tab-content" data-tab="chart-strength" id="tab-chart-strength">
+                    <div id="dynamic-content-strength" class="dynamic-content-area"></div>
+                </div>
+                <div class="kundli-tab-content" data-tab="job-timing" id="tab-job-timing">
+                    <div id="dynamic-content-job" class="dynamic-content-area"></div>
+                </div>
+                <div class="kundli-tab-content" data-tab="money-prediction" id="tab-money-prediction">
+                    <div id="dynamic-content-money" class="dynamic-content-area"></div>
+                </div>
+                <div class="kundli-tab-content" data-tab="health-prediction" id="tab-health-prediction">
+                    <div id="dynamic-content-health" class="dynamic-content-area"></div>
+                </div>
+                <div class="kundli-tab-content" data-tab="relationship-prediction" id="tab-relationship-prediction">
+                    <div id="dynamic-content-relationship" class="dynamic-content-area"></div>
+                </div>
+                <div class="kundli-tab-content" data-tab="yogas" id="tab-yogas">
+                    <div id="dynamic-content-yogas" class="dynamic-content-area"></div>
+                </div>
+                <div class="kundli-tab-content" data-tab="dasa-predictions" id="tab-dasa-predictions">
+                    <div id="dynamic-content-dasa" class="dynamic-content-area"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -7306,17 +9932,45 @@ function showSampleReport() {
     
     mainContainer.classList.add('hidden');
     
-    // Add sample report banner
+    // Add sample report banner - will be inserted into the first tab
     const sampleBanner = `
-        <div style="background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); padding: 15px 20px; margin-bottom: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div class="sample-report-banner" style="background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); padding: 15px 20px; margin: 0 auto 30px auto; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 1200px; width: 100%; box-sizing: border-box;">
             <strong style="color: #8b5a00; font-size: 16px;">📊 Sample Report</strong>
             <p style="color: #6b4a00; margin: 8px 0 0 0; font-size: 14px;">This is a sample Kundli analysis. Enter your birth details to generate your personalized report.</p>
         </div>
     `;
     
-    articleContent.innerHTML = sampleBanner + articleHTML;
+    articleContent.innerHTML = articleHTML;
+    
+    // Insert sample banner into the birth-details tab after it's rendered
+    setTimeout(() => {
+        const birthDetailsTab = document.getElementById('tab-birth-details');
+        if (birthDetailsTab) {
+            const intro = birthDetailsTab.querySelector('.article-intro');
+            if (intro) {
+                intro.insertAdjacentHTML('beforebegin', sampleBanner);
+            } else {
+                birthDetailsTab.insertAdjacentHTML('afterbegin', sampleBanner);
+            }
+        }
+    }, 50);
     articleView.classList.remove('hidden');
     articleView.classList.add('active');
+    
+    // Store sample data in global kundliTabData for tab system
+    if (sampleData.output && Array.isArray(sampleData.output) && sampleData.output.length > 1) {
+        window.kundliTabData = {
+            planetsData: sampleData.output[1],
+            ascendantSign: sampleData.output[1]?.Ascendant?.current_sign || null,
+            mahaDashaData: null, // Sample report doesn't have mahaDashaData
+            shadbalaApiData: null, // Sample report doesn't have shadbalaApiData
+            apiResult: sampleData,
+            apiDataForRequests: null, // Sample report doesn't need API requests
+            language: language,
+            generatedContent: {},
+            currentDasha: currentDasha
+        };
+    }
     
             // Initialize tabs and sidebar after content is loaded
             setTimeout(() => {
@@ -7326,13 +9980,38 @@ function showSampleReport() {
                 if (typeof window.reinitializeSidebar === 'function') {
                     window.reinitializeSidebar();
                 }
+                
+                // Wait a bit more for sidebar to fully initialize, then set default tab
+                setTimeout(() => {
+                    // Verify tabs exist in DOM
+                    const allTabs = document.querySelectorAll('.kundli-tab-content');
+                    console.log('Sample report - Found tabs:', allTabs.length);
+                    allTabs.forEach(tab => {
+                        console.log('Tab ID:', tab.id, 'Active:', tab.classList.contains('active'));
+                    });
+                    
+                    // Set default tab to birth-details and scroll to top
+                    if (typeof window.switchKundliTab === 'function') {
+                        console.log('Calling switchKundliTab for sample report');
+                        window.switchKundliTab('birth-details');
+                    } else {
+                        console.log('switchKundliTab not available, using fallback');
+                        // Fallback: manually show birth-details tab if function not available
+                        allTabs.forEach(tab => tab.classList.remove('active'));
+                        const birthTab = document.getElementById('tab-birth-details');
+                        if (birthTab) {
+                            birthTab.classList.add('active');
+                            console.log('Birth details tab activated via fallback');
+                        } else {
+                            console.error('Birth details tab not found!');
+                        }
+                    }
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 300);
             }, 100);
             
             // Initialize chatbot
             initializeChatbot(language);
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -7778,6 +10457,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (typeof window.reinitializeSidebar === 'function') {
                     window.reinitializeSidebar();
                 }
+                
+                // Set default tab to birth-details and scroll to top
+                if (typeof window.switchKundliTab === 'function') {
+                    window.switchKundliTab('birth-details');
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }, 100);
             
             initializeChatbot(language);

@@ -326,7 +326,12 @@
             const sidebar = document.getElementById('articleSidebar');
             const navLinks = document.querySelectorAll('.sidebar-nav-link');
             
-            if (!sidebarToggle || !sidebar) return;
+            if (!sidebarToggle || !sidebar) {
+                console.log('Sidebar elements not found');
+                return;
+            }
+            
+            console.log('Initializing sidebar, found', navLinks.length, 'nav links');
             
             // Initialize sidebar as visible (not hidden) by default on desktop
             if (window.innerWidth > 1024) {
@@ -360,8 +365,13 @@
                 }
             });
             
-            // Handle navigation clicks using event delegation
-            sidebar.addEventListener('click', async function(e) {
+            // Handle navigation clicks using event delegation - TAB SYSTEM
+            // Store handler reference to allow removal
+            if (sidebar._clickHandler) {
+                sidebar.removeEventListener('click', sidebar._clickHandler);
+            }
+            
+            sidebar._clickHandler = async function(e) {
                 const link = e.target.closest('.sidebar-nav-link');
                 if (!link) return;
                 
@@ -370,125 +380,48 @@
                 
                 const targetId = link.getAttribute('href') ? link.getAttribute('href').substring(1) : '';
                 const tabKey = link.getAttribute('data-tab');
+                const sectionId = link.getAttribute('data-section');
                 
-                console.log('Sidebar link clicked:', { targetId, tabKey, href: link.getAttribute('href') });
+                console.log('Sidebar link clicked:', { targetId, tabKey, sectionId, href: link.getAttribute('href') });
                 
                 // Update active state
                 const allNavLinks = document.querySelectorAll('.sidebar-nav-link');
                 allNavLinks.forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
                 
-                // Check if this is a tab that needs dynamic loading
-                if (tabKey) {
-                    console.log('Loading tab:', tabKey);
-                    // Hide all sections except birth-details and header/intro
-                    const sectionsToHide = ['planetary-positions', 'house-lords', 'house-effects'];
-                    sectionsToHide.forEach(sectionId => {
-                        const section = document.getElementById(sectionId);
-                        if (section) {
-                            section.style.display = 'none';
-                        }
-                    });
-                    
-                    // Ensure header, intro, and birth-details are visible
-                    const header = document.getElementById('article-header');
-                    const intro = document.getElementById('article-intro');
-                    const birthDetails = document.getElementById('birth-details');
-                    const dynamicArea = document.getElementById('dynamic-content-area');
-                    
-                    if (header) header.style.display = 'block';
-                    if (intro) intro.style.display = 'block';
-                    if (birthDetails) birthDetails.style.display = 'block';
-                    if (dynamicArea) dynamicArea.style.display = 'block';
-                    
-                    // Hide the footer note that appears after house-effects
-                    const footerNote = dynamicArea?.nextElementSibling;
-                    if (footerNote && footerNote.classList.contains('article-intro')) {
-                        footerNote.style.display = 'none';
-                    }
-                    
-                    // Scroll to top
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    
-                    // Show loading in dynamic content area
-                    if (!dynamicArea) {
-                        console.error('Dynamic content area not found!');
-                        alert('Error: Content area not found. Please refresh the page.');
-                        return;
-                    }
-                    
-                    // Clear any existing content and show loading
-                    dynamicArea.innerHTML = `
-                        <div style="text-align: center; padding: 40px 20px;">
-                            <div class="spinner" style="margin: 0 auto 20px;"></div>
-                            <p style="color: #666;">Loading content...</p>
-                        </div>
-                    `;
-                    
-                    // Load content
-                    try {
-                        console.log('Checking for loadTabContent function...', typeof window.loadTabContent);
-                        if (typeof window.loadTabContent === 'function') {
-                            console.log('Calling loadTabContent with key:', tabKey);
-                            const content = await window.loadTabContent(tabKey);
-                            console.log('Content loaded, length:', content ? content.length : 0);
-                            if (dynamicArea) {
-                                dynamicArea.innerHTML = content;
-                            }
-                            
-                            // Initialize Dasa predictions handler if this is the Dasa Predictions tab
-                            if (tabKey === 'dasaPredictions' && typeof window.initializeDasaPredictionsHandler === 'function') {
-                                setTimeout(() => {
-                                    window.initializeDasaPredictionsHandler();
-                                }, 100);
-                            }
-                            
-                            // Scroll to top after content loads
-                            setTimeout(() => {
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }, 100);
-                        } else {
-                            console.error('loadTabContent function not available!');
-                            throw new Error('loadTabContent function not available. Please refresh the page.');
-                        }
-                    } catch (error) {
-                        console.error('Error loading tab content:', error);
-                        if (dynamicArea) {
-                            dynamicArea.innerHTML = `
-                                <div style="padding: 20px; color: #f44336;">
-                                    <strong>Error loading content:</strong> ${error.message}<br>
-                                    <small>Please check the browser console for details.</small>
-                                </div>
-                            `;
-                        }
-                    }
+                // Map section IDs to tab names
+                const sectionToTabMap = {
+                    'article-header': 'birth-details', // Show birth details for header
+                    'birth-details': 'birth-details',
+                    'planetary-positions': 'planetary-positions',
+                    'house-lords': 'house-lords',
+                    'house-effects': 'house-effects',
+                    'chart-strength': 'chart-strength',
+                    'job-timing': 'job-timing',
+                    'money-prediction': 'money-prediction',
+                    'health-prediction': 'health-prediction',
+                    'relationship-prediction': 'relationship-prediction',
+                    'yogas': 'yogas',
+                    'dasa-predictions': 'dasa-predictions'
+                };
+                
+                // Determine which tab to show
+                let activeTab = sectionToTabMap[sectionId] || sectionToTabMap[targetId] || 'birth-details';
+                
+                console.log('Switching to tab:', activeTab, 'with key:', tabKey);
+                
+                // Switch to the appropriate tab
+                if (typeof window.switchKundliTab === 'function') {
+                    await window.switchKundliTab(activeTab, tabKey);
                 } else {
-                    // Regular section - show all sections and scroll to target
-                    const sectionsToShow = ['planetary-positions', 'house-lords', 'house-effects'];
-                    sectionsToShow.forEach(sectionId => {
-                        const section = document.getElementById(sectionId);
-                        if (section) {
-                            section.style.display = 'block';
-                        }
-                    });
-                    
-                    // Show the footer note
-                    const dynamicArea = document.getElementById('dynamic-content-area');
-                    if (dynamicArea) {
-                        const footerNote = dynamicArea.nextElementSibling;
-                        if (footerNote && footerNote.classList.contains('article-intro')) {
-                            footerNote.style.display = 'block';
-                        }
-                    }
-                    
-                    // Scroll to target section
-                    const targetElement = document.getElementById(targetId);
-                    if (targetElement) {
-                        const offsetTop = targetElement.offsetTop - 100;
-                        window.scrollTo({
-                            top: offsetTop,
-                            behavior: 'smooth'
-                        });
+                    console.error('switchKundliTab function not available!');
+                    // Fallback: manually switch tabs
+                    const allTabs = document.querySelectorAll('.kundli-tab-content');
+                    allTabs.forEach(tab => tab.classList.remove('active'));
+                    const targetTab = document.getElementById('tab-' + activeTab);
+                    if (targetTab) {
+                        targetTab.classList.add('active');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
                 }
                 
@@ -501,7 +434,81 @@
                         mainContent.classList.add('sidebar-hidden');
                     }
                 }
-            });
+            };
+            
+            // Add the event listener
+            sidebar.addEventListener('click', sidebar._clickHandler);
+            
+            // Function to switch kundli tabs - make it globally available
+            window.switchKundliTab = async function(tabName, tabKey) {
+                console.log('switchKundliTab called:', tabName, tabKey);
+                // Hide all tab contents
+                const allTabs = document.querySelectorAll('.kundli-tab-content');
+                console.log('Found tabs:', allTabs.length);
+                allTabs.forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // Show the selected tab
+                const targetTab = document.getElementById('tab-' + tabName);
+                console.log('Target tab element:', targetTab ? 'found' : 'not found', 'tab-' + tabName);
+                if (targetTab) {
+                    targetTab.classList.add('active');
+                    console.log('Tab activated:', 'tab-' + tabName);
+                    
+                    // If this is a dynamic tab, load content
+                    if (tabKey && (tabKey === 'strengthAssessment' || tabKey === 'jobTiming' || tabKey === 'money' || 
+                        tabKey === 'health' || tabKey === 'relationship' || tabKey === 'yogas' || tabKey === 'dasaPredictions')) {
+                        const dynamicContainer = targetTab.querySelector('.dynamic-content-area');
+                        if (dynamicContainer) {
+                            // Check if content already loaded
+                            if (!dynamicContainer.innerHTML.trim() || dynamicContainer.innerHTML.includes('tab-loading-placeholder')) {
+                                // Show loading
+                                dynamicContainer.innerHTML = `
+                                    <div style="text-align: center; padding: 40px 20px;">
+                                        <div class="spinner" style="margin: 0 auto 20px;"></div>
+                                        <p style="color: #666;">Loading content...</p>
+                                    </div>
+                                `;
+                                
+                                // Load content
+                                try {
+                                    if (typeof window.loadTabContent === 'function') {
+                                        const content = await window.loadTabContent(tabKey);
+                                        dynamicContainer.innerHTML = content;
+                                        
+                                        // Initialize Dasa predictions handler if needed
+                                        if (tabKey === 'dasaPredictions' && typeof window.initializeDasaPredictionsHandler === 'function') {
+                                            setTimeout(() => {
+                                                window.initializeDasaPredictionsHandler();
+                                            }, 100);
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Error loading tab content:', error);
+                                    dynamicContainer.innerHTML = `
+                                        <div style="padding: 20px; color: #f44336;">
+                                            <strong>Error loading content:</strong> ${error.message}
+                                        </div>
+                                    `;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    console.error('Tab not found:', 'tab-' + tabName);
+                    // Fallback: try to find any tab with matching data-tab attribute
+                    const fallbackTab = document.querySelector(`[data-tab="${tabName}"]`);
+                    if (fallbackTab) {
+                        console.log('Found fallback tab:', fallbackTab);
+                        fallbackTab.classList.add('active');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                }
+            };
             
             // Highlight active section on scroll
             const observerOptions = {
@@ -532,7 +539,12 @@
         
         // Reinitialize sidebar when new content is loaded
         window.reinitializeSidebar = function() {
-            setTimeout(initializeSidebar, 100);
+            console.log('Reinitializing sidebar...');
+            // Remove old event listeners by reinitializing
+            setTimeout(() => {
+                initializeSidebar();
+                console.log('Sidebar reinitialized, switchKundliTab available:', typeof window.switchKundliTab);
+            }, 100);
         };
     </script>
     

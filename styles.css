@@ -615,6 +615,9 @@ body:has(.article-sidebar.hidden) .sidebar-toggle {
 .dynamic-content-area {
     margin: 40px 0;
     min-height: 200px;
+    max-width: 1200px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .article-main-content {
@@ -625,6 +628,9 @@ body:has(.article-sidebar.hidden) .sidebar-toggle {
     width: calc(100% - 280px);
     overflow-x: hidden;
     box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
 }
 
 .article-main-content.sidebar-hidden {
@@ -784,9 +790,9 @@ body:has(.article-view.active) .container {
 }
 
 .article-content {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 80px 40px;
+    padding: 40px 40px 60px 40px;
     font-family: 'Charter', 'Crimson Text', Georgia, serif; /* Serif for article/report */
     line-height: 1.82;
     color: #201e1d;
@@ -796,7 +802,10 @@ body:has(.article-view.active) .container {
     width: 100%;
     position: relative;
     overflow-x: hidden;
+    display: block;
+    text-align: left;
 }
+
 
 .article-content * {
     max-width: 100%;
@@ -816,18 +825,14 @@ body:has(.article-view.active) .container {
 }
 
 @media (max-width: 768px) {
-    .article-content {
-        padding: 120px 20px 80px 20px;
-        padding-top: calc(120px + env(safe-area-inset-top, 0px));
-        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    .article-content:not(:has(.kundli-tab-container)) {
+        padding: 40px 20px 60px 20px;
     }
 }
 
 @media (max-width: 480px) {
-    .article-content {
-        padding: 110px 16px 100px 16px;
-        padding-top: calc(110px + env(safe-area-inset-top, 0px));
-        padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    .article-content:not(:has(.kundli-tab-container)) {
+        padding: 30px 16px 50px 16px;
         line-height: 1.7;
     }
 }
@@ -844,6 +849,243 @@ body:has(.article-view.active) .container {
     max-width: 100%;
 }
 
+/* Header for kundli tabs - NOT fixed, scrolls with content */
+.article-header-fixed {
+    position: relative;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    background: white;
+    text-align: center;
+    padding: 40px 40px 30px 40px;
+    border-bottom: 3px solid #1a1a1a;
+    margin: 0 auto;
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+    .article-header-fixed {
+        left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+
+/* Tab system for kundli content */
+.kundli-tab-container {
+    margin: 0 auto;
+    padding: 0 40px 40px 40px;
+    min-height: calc(100vh - 200px);
+    max-width: 1200px;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+@media (max-width: 768px) {
+    .article-content {
+        padding: 30px 20px 40px 20px;
+    }
+    
+    .article-header-fixed {
+        padding: 30px 20px 20px 20px;
+    }
+    
+    .kundli-tab-container {
+        padding: 0 20px 30px 20px;
+    }
+    
+    .kundli-tab-content {
+        padding: 0;
+    }
+    
+    .kundli-tab-content .article-intro,
+    .kundli-tab-content .planets-section,
+    .kundli-tab-content .fundamental-note {
+        padding: 0;
+    }
+    
+    .kundli-tab-content .birth-details-box {
+        margin: 0 auto 25px auto;
+        padding: 20px;
+    }
+    
+    .article-header-fixed h1 {
+        font-size: 22px;
+        margin-bottom: 4px;
+        color: #1a1a1a !important;
+    }
+    
+    .article-header-fixed .article-meta {
+        font-size: 10px;
+        color: #666 !important;
+    }
+    
+    .sample-report-banner {
+        width: calc(100% - 40px) !important;
+        margin: 0 auto 25px auto !important;
+    }
+    
+    .nav-logo {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-content {
+        padding: 25px 16px 35px 16px;
+    }
+    
+    .article-header-fixed {
+        padding: 25px 16px 15px 16px;
+    }
+    
+    .kundli-tab-container {
+        padding: 0 16px 25px 16px;
+    }
+    
+    .kundli-tab-content .article-intro,
+    .kundli-tab-content .planets-section,
+    .kundli-tab-content .fundamental-note {
+        padding: 0;
+    }
+    
+    .kundli-tab-content .birth-details-box {
+        margin: 0 auto 20px auto;
+        padding: 16px 14px;
+    }
+    
+    .article-header-fixed h1 {
+        font-size: 18px;
+        margin-bottom: 3px;
+        color: #1a1a1a !important;
+    }
+    
+    .article-header-fixed .article-meta {
+        font-size: 9px;
+        color: #666 !important;
+    }
+    
+    .sample-report-banner {
+        width: calc(100% - 32px) !important;
+        margin: 0 auto 20px auto !important;
+        padding: 12px 16px !important;
+    }
+    
+    .nav-logo {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+    }
+}
+
+.kundli-tab-content {
+    display: none;
+    padding: 0;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.kundli-tab-content.active {
+    display: block;
+}
+
+/* Ensure content inside tabs is properly aligned */
+.kundli-tab-content .article-intro {
+    text-align: center;
+    margin: 0 auto 40px auto;
+    max-width: 800px;
+    padding: 0 20px;
+}
+
+.kundli-tab-content .article-intro p {
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+
+.kundli-tab-content .birth-details-box {
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+    text-align: center;
+    padding: 30px;
+}
+
+.kundli-tab-content .planets-section {
+    max-width: 100%;
+    margin: 50px auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.kundli-tab-content .planets-section h2 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.kundli-tab-content .fundamental-note {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* Sample banner alignment */
+.sample-report-banner {
+    max-width: 1200px;
+    margin: 0 auto 30px auto !important;
+    width: calc(100% - 40px);
+    box-sizing: border-box;
+    padding: 15px 20px !important;
+}
+
+.kundli-tab-content .sample-report-banner {
+    margin-bottom: 30px !important;
+}
+
+@media (max-width: 768px) {
+    .sample-report-banner {
+        margin: 0 auto 20px auto !important;
+        padding: 12px 16px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .sample-report-banner {
+        margin: 0 auto 16px auto !important;
+        padding: 10px 14px !important;
+    }
+    
+    .sample-report-banner strong {
+        font-size: 14px !important;
+    }
+    
+    .sample-report-banner p {
+        font-size: 12px !important;
+    }
+}
+
+/* Ensure all content sections are properly centered */
+.kundli-tab-content .fundamental-note {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 @media (max-width: 768px) {
     .article-header {
         padding: 0 0 35px 0;
@@ -858,14 +1100,20 @@ body:has(.article-view.active) .container {
     }
 }
 
-.article-header h1 {
-    font-size: 52px;
+.article-header h1,
+.article-header-fixed h1 {
+    font-size: 28px;
+    margin: 0 0 5px 0;
     font-weight: 600;
     line-height: 1.2;
-    margin-bottom: 20px;
-    letter-spacing: -1px;
-    color: #1a1a1a;
+    letter-spacing: -0.5px;
+    color: #1a1a1a !important;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    width: 100%;
 }
+
 
 @media (max-width: 768px) {
     .article-header h1 {
@@ -892,8 +1140,26 @@ body:has(.article-view.active) .container {
     margin-top: 20px;
 }
 
+.article-header-fixed .article-meta {
+    font-size: 11px;
+    margin: 0;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: #666 !important;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+}
+
+
 .article-body {
     margin: 60px auto;
+}
+
+/* When using tab system, reduce top margin */
+.article-body .kundli-tab-container {
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 @media (max-width: 768px) {
@@ -957,19 +1223,22 @@ body:has(.article-view.active) .container {
     width: 100%;
     max-width: 600px;
     text-align: center;
+    display: block;
 }
 
 @media (max-width: 768px) {
     .birth-details-box {
         padding: 20px;
-        margin: 30px 0;
+        margin: 30px auto;
+        max-width: calc(100% - 40px);
     }
 }
 
 @media (max-width: 480px) {
     .birth-details-box {
         padding: 16px 14px;
-        margin: 24px 0;
+        margin: 24px auto;
+        max-width: calc(100% - 32px);
         border-left-width: 3px;
     }
 }
@@ -1005,18 +1274,21 @@ body:has(.article-view.active) .container {
 }
 
 .planets-section {
-    margin: 50px 0;
+    margin: 50px auto;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
     .planets-section {
-        margin: 40px 0;
+        margin: 40px auto;
     }
 }
 
 @media (max-width: 480px) {
     .planets-section {
-        margin: 30px 0;
+        margin: 30px auto;
     }
 }
 
@@ -1045,7 +1317,10 @@ body:has(.article-view.active) .container {
 
 .planets-table-wrapper {
     overflow-x: auto;
-    margin: 20px 0;
+    margin: 30px auto;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .planets-table {
@@ -1054,6 +1329,8 @@ body:has(.article-view.active) .container {
     background: white;
     font-family: 'Inter', sans-serif;
     font-size: 15px;
+    margin: 0 auto;
+    display: table;
 }
 
 .planets-table thead {
@@ -1315,10 +1592,13 @@ body:has(.article-view.active) .container {
     box-shadow: 0 2px 10px rgba(30,60,130,0.07), 0 6px 22px rgba(108,130,170,0.10);
     border-radius: 18px;
     border: 1.3px solid #e8eefa;
-    margin-bottom: 38px;
+    margin: 0 auto 38px auto;
     padding: 35px 30px 28px 30px;
     font-family: 'Inter', 'Crimson Text', serif;
     transition: box-shadow .16s;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
 }
 @media (max-width:640px) {
     .ascendant-lord-section {
@@ -1631,9 +1911,11 @@ body:has(.article-view.active) .container {
     border-left: 7px solid #d7b97b !important;
     background: #f9f6ed !important;
     padding: 20px 18px !important;
-    margin: 20px 0 !important;
+    margin: 30px auto !important;
     box-sizing: border-box !important;
     width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
 }
 .fundamental-note p {
     font-size: 17.5px !important;
@@ -2241,15 +2523,23 @@ body:has(.article-view.active) .container {
     top: 0;
     z-index: 1000;
     width: 100%;
+    padding: 0;
 }
 
 .nav-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 1rem 2rem;
+    padding: 1rem 1rem 1rem 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding-left: 0 !important;
+}
+
+.nav-container .nav-logo:first-child {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    transform: translateX(0);
 }
 
 .nav-logo {
@@ -2258,6 +2548,10 @@ body:has(.article-view.active) .container {
     color: #2b2520;
     text-decoration: none;
     font-family: 'Charter', 'Georgia', serif;
+    margin-left: 0 !important;
+    margin-right: auto;
+    padding-left: 0 !important;
+    padding-right: 0;
 }
 
 .nav-menu {
@@ -2529,7 +2823,13 @@ body:has(.article-view.active .article-sidebar.hidden) .main-footer {
     }
 
     .nav-container {
-        padding: 1rem;
+        padding: 1rem 1rem 1rem 0 !important;
+        padding-left: 0 !important;
+    }
+    
+    .nav-logo {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
     }
 
     .page-container {
