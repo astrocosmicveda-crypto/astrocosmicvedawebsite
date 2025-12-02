@@ -49,7 +49,7 @@ body {
     border: 1px solid #e5e5e5;
     border-radius: 12px;
     box-shadow: 0 1.5px 8px rgba(0,0,0,0.04), 0 8px 32px rgba(110,90,66,0.06);
-    max-width: 520px;
+    max-width: 900px;
     width: 100%;
     padding: 40px 36px 32px 36px;
     margin: 2rem auto;
@@ -613,11 +613,54 @@ body:has(.article-sidebar.hidden) .sidebar-toggle {
 
 /* Dynamic content area for tab content */
 .dynamic-content-area {
-    margin: 40px 0;
+    margin: 20px auto;
     min-height: 200px;
     max-width: 1200px;
     width: 100%;
     box-sizing: border-box;
+    padding: 0 20px;
+}
+
+/* Consistent spacing for dynamic content in tabs */
+.kundli-tab-content .dynamic-content-area {
+    margin: 20px auto;
+}
+
+/* Ensure all content within dynamic areas is properly constrained */
+.dynamic-content-area > * {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Grid containers for strength sections */
+.strength-planetary-grid,
+.strength-house-lord-grid {
+    max-width: 1200px;
+    margin: 20px auto !important;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 20px;
+}
+
+/* Consistent spacing in tabs */
+.kundli-tab-content .strength-planetary-grid,
+.kundli-tab-content .strength-house-lord-grid {
+    margin: 20px auto !important;
+}
+
+/* Prediction sections */
+.prediction-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 20px;
+}
+
+/* Consistent spacing for prediction sections in tabs */
+.kundli-tab-content .prediction-section {
+    margin: 20px auto;
 }
 
 .article-main-content {
@@ -628,9 +671,7 @@ body:has(.article-sidebar.hidden) .sidebar-toggle {
     width: calc(100% - 280px);
     overflow-x: hidden;
     box-sizing: border-box;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    display: block;
 }
 
 .article-main-content.sidebar-hidden {
@@ -806,6 +847,39 @@ body:has(.article-view.active) .container {
     text-align: left;
 }
 
+/* When article-content contains tabs, reduce padding to let inner sections control their own spacing */
+.article-content:has(.kundli-tab-content) {
+    padding: 20px 0 40px 0;
+}
+
+@media (max-width: 768px) {
+    .article-content:has(.kundli-tab-content) {
+        padding: 15px 0 30px 0;
+    }
+    
+    .kundli-tab-content .strength-assessment-section,
+    .kundli-tab-content .job-timing-section,
+    .kundli-tab-content .dasa-predictions-section,
+    .kundli-tab-content .yoga-section,
+    .kundli-tab-content .article-section:not(.article-header-fixed):not(.article-intro) {
+        padding: 0 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-content:has(.kundli-tab-content) {
+        padding: 10px 0 25px 0;
+    }
+    
+    .kundli-tab-content .strength-assessment-section,
+    .kundli-tab-content .job-timing-section,
+    .kundli-tab-content .dasa-predictions-section,
+    .kundli-tab-content .yoga-section,
+    .kundli-tab-content .article-section:not(.article-header-fixed):not(.article-intro) {
+        padding: 0 16px;
+    }
+}
+
 
 .article-content * {
     max-width: 100%;
@@ -825,13 +899,13 @@ body:has(.article-view.active) .container {
 }
 
 @media (max-width: 768px) {
-    .article-content:not(:has(.kundli-tab-container)) {
+    .article-content:not(:has(.kundli-tab-content)) {
         padding: 40px 20px 60px 20px;
     }
 }
 
 @media (max-width: 480px) {
-    .article-content:not(:has(.kundli-tab-container)) {
+    .article-content:not(:has(.kundli-tab-content)) {
         padding: 30px 16px 50px 16px;
         line-height: 1.7;
     }
@@ -858,16 +932,14 @@ body:has(.article-view.active) .container {
     z-index: 1;
     background: white;
     text-align: center;
-    padding: 40px 40px 30px 40px;
+    padding: 15px 40px 15px 40px;
     border-bottom: 3px solid #1a1a1a;
-    margin: 0 auto;
+    margin: 0 auto 10px auto;
     max-width: 1200px;
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    display: block;
     box-sizing: border-box;
+    clear: both;
 }
 
 @media (max-width: 1024px) {
@@ -878,15 +950,87 @@ body:has(.article-view.active) .container {
 }
 
 
-/* Tab system for kundli content */
-.kundli-tab-container {
-    margin: 0 auto;
-    padding: 0 40px 40px 40px;
-    min-height: calc(100vh - 200px);
+
+/* Reduce spacing after header in tabs */
+.kundli-tab-content .article-header-fixed {
+    margin-bottom: 10px;
+}
+
+/* Reduce top margin on first content element after header in tabs */
+.kundli-tab-content .article-header-fixed + * {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.kundli-tab-content .article-header-fixed ~ .article-section:first-of-type {
+    margin-top: 10px;
+}
+
+/* Ensure no extra spacing in tab content */
+.kundli-tab-content > *:first-child {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+/* Remove any default margins/padding from article sections in tabs */
+.kundli-tab-content .article-section {
+    margin-top: 0;
+}
+
+/* Consistent spacing for all section types in tabs after header */
+.kundli-tab-content .article-header-fixed ~ .article-section,
+.kundli-tab-content .article-header-fixed ~ .planets-section,
+.kundli-tab-content .article-header-fixed ~ .prediction-section,
+.kundli-tab-content .article-header-fixed ~ .strength-assessment-section,
+.kundli-tab-content .article-header-fixed ~ .job-timing-section,
+.kundli-tab-content .article-header-fixed ~ .dasa-predictions-section,
+.kundli-tab-content .article-header-fixed ~ .yoga-section,
+.kundli-tab-content .article-header-fixed ~ .dynamic-content-area {
+    margin-top: 20px !important;
+}
+
+/* For tabs without header (like House Lords, House Effects), use standard spacing */
+.kundli-tab-content > .planets-section:first-child,
+.kundli-tab-content > .article-section:first-child:not(.article-header-fixed) {
+    margin-top: 20px;
+}
+
+/* Override any excessive margins on section types in tabs and ensure consistent width */
+.kundli-tab-content .strength-assessment-section,
+.kundli-tab-content .job-timing-section,
+.kundli-tab-content .dasa-predictions-section,
+.kundli-tab-content .yoga-section {
+    margin: 20px auto !important;
+    max-width: 1200px !important;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 40px;
+}
+
+/* Override yoga-section default margin in tabs */
+.kundli-tab-content .yoga-section {
+    margin: 20px auto !important;
+    max-width: 1200px !important;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 36px 28px;
+}
+
+/* Ensure all content sections in tabs have consistent spacing and width (matching House Lords/House Effects) */
+.kundli-tab-content .article-section:not(.article-header-fixed):not(.article-intro) {
+    margin: 20px auto;
     max-width: 1200px;
     width: 100%;
     box-sizing: border-box;
-    text-align: left;
+    padding: 0 40px;
+}
+
+/* First section after header should have minimal top margin */
+.kundli-tab-content .article-header-fixed + .article-section,
+.kundli-tab-content .article-header-fixed + .planets-section,
+.kundli-tab-content .article-header-fixed + .prediction-section,
+.kundli-tab-content .article-header-fixed + .dynamic-content-area {
+    margin-top: 20px !important;
 }
 
 @media (max-width: 768px) {
@@ -895,12 +1039,10 @@ body:has(.article-view.active) .container {
     }
     
     .article-header-fixed {
-        padding: 30px 20px 20px 20px;
+        padding: 12px 20px 12px 20px;
+        margin-bottom: 10px;
     }
     
-    .kundli-tab-container {
-        padding: 0 20px 30px 20px;
-    }
     
     .kundli-tab-content {
         padding: 0;
@@ -945,12 +1087,10 @@ body:has(.article-view.active) .container {
     }
     
     .article-header-fixed {
-        padding: 25px 16px 15px 16px;
+        padding: 10px 16px 10px 16px;
+        margin-bottom: 8px;
     }
     
-    .kundli-tab-container {
-        padding: 0 16px 25px 16px;
-    }
     
     .kundli-tab-content .article-intro,
     .kundli-tab-content .planets-section,
@@ -994,10 +1134,37 @@ body:has(.article-view.active) .container {
     margin: 0 auto;
     box-sizing: border-box;
     text-align: left;
+    clear: both;
+}
+
+/* Ensure all direct children of tab content are centered and have consistent width */
+.kundli-tab-content > * {
+    max-width: 1200px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box;
+}
+
+/* Ensure all nested sections within tabs are also centered and have consistent width */
+.kundli-tab-content .article-section,
+.kundli-tab-content .planets-section,
+.kundli-tab-content .prediction-section,
+.kundli-tab-content .strength-assessment-section,
+.kundli-tab-content .job-timing-section,
+.kundli-tab-content .dasa-predictions-section,
+.kundli-tab-content .yoga-section,
+.kundli-tab-content .dynamic-content-area {
+    max-width: 1200px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .kundli-tab-content.active {
     display: block;
+    clear: both;
+    width: 100%;
 }
 
 /* Ensure content inside tabs is properly aligned */
@@ -1024,10 +1191,11 @@ body:has(.article-view.active) .container {
 }
 
 .kundli-tab-content .planets-section {
-    max-width: 100%;
-    margin: 50px auto;
+    max-width: 1200px;
+    margin: 20px auto;
     padding: 0 20px;
     box-sizing: border-box;
+    width: 100%;
 }
 
 .kundli-tab-content .planets-section h2 {
@@ -1151,28 +1319,63 @@ body:has(.article-view.active) .container {
     opacity: 1;
 }
 
-
-.article-body {
-    margin: 60px auto;
+/* Download PDF Button */
+.download-pdf-btn {
+    background: #2196F3 !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 24px !important;
+    border-radius: 6px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    transition: all 0.3s ease !important;
+    white-space: nowrap !important;
+    font-family: inherit !important;
 }
 
-/* When using tab system, reduce top margin */
-.article-body .kundli-tab-container {
-    margin-top: 0;
-    margin-bottom: 0;
+.download-pdf-btn:hover {
+    background: #1976D2 !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+    transform: translateY(-1px);
+}
+
+.download-pdf-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+.download-pdf-btn svg {
+    flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
-    .article-body {
-        margin: 40px auto;
+    .article-header-fixed {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    
+    .download-pdf-btn {
+        width: 100% !important;
+        justify-content: center !important;
+        margin-top: 10px !important;
+        padding: 10px 20px !important;
+        font-size: 14px !important;
     }
 }
 
 @media (max-width: 480px) {
-    .article-body {
-        margin: 30px auto;
+    .download-pdf-btn {
+        padding: 10px 16px !important;
+        font-size: 13px !important;
     }
 }
+
+
 
 .article-intro {
     margin-bottom: 50px;
@@ -1460,9 +1663,7 @@ body:has(.article-view.active) .container {
 }
 
 .back-button {
-    position: fixed;
-    top: 20px;
-    right: 20px; /* Position on the right side to avoid overlapping title */
+    position: relative;
     background: #1a1a1a;
     color: white;
     border: none;
@@ -1471,7 +1672,6 @@ body:has(.article-view.active) .container {
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
-    z-index: 1000;
     transition: all 0.3s ease;
     -webkit-tap-highlight-color: transparent;
     min-height: 44px; /* Better touch target for mobile */
@@ -1487,25 +1687,55 @@ body:has(.article-view.active) .container {
     }
 }
 
+/* Fixed button container for Back and Download buttons */
+body > div[style*="position: fixed"][style*="top: 80px"] {
+    position: fixed !important;
+    top: 80px !important;
+    right: 20px !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    gap: 10px !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+}
+
 @media (max-width: 768px) {
-    .back-button {
-        top: calc(15px + env(safe-area-inset-top, 0px));
+    body > div[style*="position: fixed"][style*="top: 80px"] {
+        top: calc(15px + env(safe-area-inset-top, 0px)) !important;
         right: 15px !important;
-        left: auto !important;
+    }
+    
+    .back-button {
         padding: 10px 20px;
         font-size: 13px;
+    }
+    
+    .download-pdf-btn {
+        padding: 10px 20px !important;
+        font-size: 13px !important;
     }
 }
 
 @media (max-width: 480px) {
-    .back-button {
-        top: calc(10px + env(safe-area-inset-top, 0px));
+    body > div[style*="position: fixed"][style*="top: 80px"] {
+        top: calc(10px + env(safe-area-inset-top, 0px)) !important;
         right: 10px !important;
-        left: auto !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .back-button {
         padding: 10px 18px;
         font-size: 13px;
         border-radius: 4px;
         min-height: 44px;
+        width: 100%;
+    }
+    
+    .download-pdf-btn {
+        padding: 10px 18px !important;
+        font-size: 13px !important;
+        width: 100% !important;
     }
 }
 
